@@ -57,7 +57,7 @@ void send_parameters(String type, String value){
   Wire.endTransmission();
 }
 
-void start_testing(){
+void testing_screen(){
   lcd.clear();
   lcd.print("RUNNING TEST");
   lcd.setCursor(0, 1);
@@ -65,7 +65,7 @@ void start_testing(){
   lcd.setCursor(0, 2);
   lcd.print("INCR. LENGTH: " + parameter_values[4] + " s");
   lcd.setCursor(0, 3);
-  lcd.print("THROTTLE:0");
+  lcd.print("THROTTLE:" + String(map(cycle_length, 1000, 2000, 0, 100)));
   Serial.println("Starting: Test Num: " + parameter_values[0] + " | Increment: " + String(throttleIncrement));
   start_motor = true;
   Wire.beginTransmission(9);
@@ -81,39 +81,31 @@ void end_testing(){
   setup();
 }
 
-void throttle_up(){
-  if(cycle_length >= MAX_THROTTLE){
-    if(millis() >= prev_interval_timestamp + INCREMENT_TIME){
-      Serial.println("DONE THROTTLING");
-      done_throttling = true;
+void pause_screen(){
+  lcd.clear();
+  lcd.setCursor(0, 1);
+  lcd.print("PRESS * TO RESUME");
+  lcd.setCursor(0, 3);
+}
+
+void throttle_slew(int start, int next_cycle_length){
+  for(cycle_length = start; cycle_length <= next_cycle_length; cycle_length++){
+    if(done_throttling){
+      return; //return to the main loop and throttle down
     }
-  }
-  else{
-    if(millis() >= prev_interval_timestamp + INCREMENT_TIME){
-      if(!read_gradient){
-        Wire.beginTransmission(9);
-        Wire.write('w');
-        Wire.endTransmission();
-      }
-      int next_cycle_length = min(cycle_length + pwm_increment, MAX_THROTTLE);
-      for(; cycle_length <= next_cycle_length; cycle_length++){
-        if(done_throttling){
-          return; //return to the main loop and throttle down
-        }
-        esc.writeMicroseconds(cycle_length);
-        lcd.setCursor(9, 3);
-        lcd.print(String(map(cycle_length, 1000, 2000, 0, 100)));
-        delay(THROTTLE_UP_DELAY);
-      }
-      cycle_length--;
-      if(!read_gradient){
-        Wire.beginTransmission(9);
-        Wire.write('g');
-        Wire.endTransmission();
-      }
-      prev_interval_timestamp = millis();
+    esc.writeMicroseconds(cycle_length);
+    int percent = map(cycle_length, 1000, 2000, 0, 100);
+    if(percent < 10){
+      lcd.setCursor(9, 3);
+      lcd.print(String(percent) + " ");
     }
+    else{
+      lcd.setCursor(9, 3);
+      lcd.print(String(percent));
+    }
+    delay(THROTTLE_UP_DELAY);
   }
+  cycle_length--;
 }
 
 void throttle_down(){
@@ -133,12 +125,53 @@ void throttle_down(){
       lcd.setCursor(10, 3);
       lcd.print(" ");
     }
-    lcd.setCursor(9, 3);
-    lcd.print(String(throttle));
+    lcd.setCursor(0, 3);
+    lcd.print("THROTTLE:" + String(throttle));
     delay(THROTTLE_UP_DELAY);
   }
   delay(INCREMENT_TIME);
-  end_testing();
+}
+
+void throttle_up(){
+  if(cycle_length >= MAX_THROTTLE){
+    if(millis() >= prev_interval_timestamp + INCREMENT_TIME){
+      Serial.println("DONE THROTTLING");
+      done_throttling = true;
+    }
+  }
+  else{
+    if(millis() >= prev_interval_timestamp + INCREMENT_TIME){
+      if(piecewise){
+        Wire.beginTransmission(9);
+        Wire.write('w');
+        Wire.endTransmission();
+
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("THROTTLING DOWN");
+
+        throttle_down();
+        pause_screen();
+        paused = true;
+        return;
+      }
+      if(!read_gradient){
+        Wire.beginTransmission(9);
+        Wire.write('w');
+        Wire.endTransmission();
+      }
+
+      int next_cycle_length = min(cycle_length + pwm_increment, MAX_THROTTLE);
+      throttle_slew(cycle_length, next_cycle_length);
+      
+      if(!read_gradient){
+        Wire.beginTransmission(9);
+        Wire.write('g');
+        Wire.endTransmission();
+      }
+      prev_interval_timestamp = millis();
+    }
+  }
 }
 
 void interrupt(){
@@ -152,10 +185,17 @@ void setup_next_input(){
     parameter_values[parameter_index] = input;
   }
   parameter_index++;
-  if(parameter_index == PARAMETER_NUM){
+  if(parameter_index == PARAMETER_NUM - 1){
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("SMOOTH DATA?");
+    lcd.setCursor(0, 3);
+    lcd.print("YES: A | NO: B");
+  }
+  else if(parameter_index == PARAMETER_NUM){
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("PIECEWISE?");
     lcd.setCursor(0, 3);
     lcd.print("YES: A | NO: B");
   }
@@ -189,7 +229,7 @@ void send_inputs(){
   INCREMENT_TIME = parameter_values[4].toInt() * 1000;
   Serial.println("TEST PARAMETERS CONFIRMED");
 
-  start_testing();
+  testing_screen();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -333,30 +373,53 @@ void loop() {
     }
   }
   else{ //can only do everything else once sensors have been tared
-    if(start_motor){
+    if(start_motor && !paused){
       throttle_up();
     }
 
     if(done_throttling){
       Serial.println("THROTTLING DOWN");
       throttle_down();
+      end_testing();
     }
 
+    Serial.println(cycle_length);
     //if a keystroke has been entered from the keypad
     if(key){
+      if(paused){
+        if(key == SEND_INPUT){
+          Wire.beginTransmission(9);
+          Wire.write('g');
+          Wire.endTransmission();
+          paused = false;
+          testing_screen();
+          int next_cycle_length = min(cycle_length + pwm_increment, MAX_THROTTLE);
+          throttle_slew(1000, next_cycle_length);
+        }
+      }
       if(key == BACK_BUTTON && parameter_index > 0){
         setup_prev_input();
       }
       else if(key == ENTER_INPUT && input != "" && parameter_index < PARAMETER_NUM){
         setup_next_input();
       }
-      else if(parameter_index == PARAMETER_NUM){
+      else if(parameter_index == PARAMETER_NUM - 1){
         if(key == 'A'){
           read_gradient = true;
           setup_next_input();
         }
         else if(key == 'B'){
           read_gradient = false;
+          setup_next_input();
+        }
+      }
+      else if(parameter_index == PARAMETER_NUM){
+        if(key == 'A'){
+          piecewise = true;
+          setup_next_input();
+        }
+        else if(key == 'B'){
+          piecewise = false;
           setup_next_input();
         }
       }
