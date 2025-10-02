@@ -65,7 +65,7 @@ void testing_screen(){
   lcd.setCursor(0, 2);
   lcd.print("INCR. LENGTH: " + parameter_values[4] + " s");
   lcd.setCursor(0, 3);
-  lcd.print("THROTTLE:" + String(map(cycle_length, 1000, 2000, 0, 100)));
+  lcd.print("THROTTLE:" + String(map(cycle_length, ESC_MIN, ESC_MAX, 0, 100)));
   Serial.println("Starting: Test Num: " + parameter_values[0] + " | Increment: " + String(throttleIncrement));
   start_motor = true;
   Wire.beginTransmission(9);
@@ -94,7 +94,7 @@ void throttle_slew(int start, int next_cycle_length){
       return; //return to the main loop and throttle down
     }
     esc.writeMicroseconds(cycle_length);
-    int percent = map(cycle_length, 1000, 2000, 0, 100);
+    int percent = map(cycle_length, ESC_MIN, ESC_MAX, 0, 100);
     if(percent < 10){
       lcd.setCursor(9, 3);
       lcd.print(String(percent) + " ");
@@ -116,7 +116,7 @@ void throttle_down(){
   }
   for(int i = cycle_length; i >= MIN_THROTTLE; i--){
     esc.writeMicroseconds(i);
-    int throttle = map(i, 1000, 2000, 0, 100);
+    int throttle = map(i, ESC_MIN, ESC_MAX, 0, 100);
     if(throttle == 99){
       lcd.setCursor(11, 3);
       lcd.print(" ");
@@ -219,10 +219,10 @@ void send_inputs(){
   delay(100);
 
   int max_throttle_input = min(max(parameter_values[1].toInt(), 0), 100);
-  MAX_THROTTLE = map(max_throttle_input, 0, 100, 1000, 2000);
+  MAX_THROTTLE = map(max_throttle_input, 0, 100, ESC_MIN, ESC_MAX);
 
   throttleIncrement = min(parameter_values[2].toInt(), max_throttle_input);
-  pwm_increment = map(throttleIncrement, 0, 100, 0, 1000); //1% -> 99% written in terms of PWM cycle length, assuming a linear mapping
+  pwm_increment = map(throttleIncrement, 0, 100, 0, ESC_MAX - ESC_MIN); //1% -> 99% written in terms of PWM cycle length, assuming a linear mapping
   
   send_parameters("m", parameter_values[3]);
 
@@ -394,7 +394,7 @@ void loop() {
           paused = false;
           testing_screen();
           int next_cycle_length = min(cycle_length + pwm_increment, MAX_THROTTLE);
-          throttle_slew(1000, next_cycle_length);
+          throttle_slew(MIN_THROTTLE, next_cycle_length);
         }
       }
       if(key == BACK_BUTTON && parameter_index > 0){

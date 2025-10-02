@@ -63,6 +63,9 @@ Servo esc;
 const int MIN_THROTTLE = 1000;
 int MAX_THROTTLE;
 
+const int ESC_MIN = 1000;
+const int ESC_MAX = 2000;
+
 const int ESC_PIN = 3;
 int INCREMENT_TIME;
 const int THROTTLE_UP_DELAY = 10;
