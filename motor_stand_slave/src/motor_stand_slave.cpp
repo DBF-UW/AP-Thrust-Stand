@@ -139,6 +139,12 @@ int free_memory() {
 //MAIN DRIVER CODE
 
 void setup(){
+  pinMode(CURRENT_PIN, INPUT);
+  pinMode(VOLTAGE_PIN, INPUT);
+
+  pinMode(RPM_PIN, INPUT);
+  pinMode(STATUS_LED_PIN, OUTPUT);
+  
   signal = "";
   reading_on = false;
   stop = false;
@@ -154,13 +160,10 @@ void setup(){
     measurements[i] = 0;
   }
 
-  pinMode(CURRENT_PIN, INPUT);
-  pinMode(VOLTAGE_PIN, INPUT);
-
-  pinMode(RPM_PIN, INPUT);
+ 
   see_object = false;
   attachInterrupt(digitalPinToInterrupt(RPM_PIN), count, CHANGE);
-
+  digitalWrite(STATUS_LED_PIN, HIGH);
   //Initialize I2C protocol (slave)
   Wire.begin(9); //Slave arduino set to address 9
   Wire.onReceive(receiveEvent);
@@ -184,6 +187,13 @@ void setup(){
 }
 
 void loop(){
+  if (ready){
+    digitalWrite(STATUS_LED_PIN, HIGH);
+    Serial.println(F("Status LED On"));
+  } else {
+    digitalWrite(STATUS_LED_PIN, LOW);
+  }
+
   if(use_prev_calibration){
     Serial.println(F("Retrieving calibration factors"));
 

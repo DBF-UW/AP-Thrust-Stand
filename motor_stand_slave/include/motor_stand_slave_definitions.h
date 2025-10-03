@@ -13,6 +13,11 @@ float zeroVoltage = 2.7;     // MODIFY THIS VALUE TO CORRESPOND TO VOLTAGE WITHO
 const float sensitivity = 1;     // Sensor sensitivity in V/kPa
 const float airDensity = 1.2;    // Air density at sea level in kg/m^3
 
+//////////////////////////////////////////////////////////////////////////////////////
+//Status LED Definitions
+
+const int STATUS_LED_PIN = 8;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 //THRUST SENSOR DEFINITIONS
 

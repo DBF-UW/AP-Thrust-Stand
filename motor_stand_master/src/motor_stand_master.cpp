@@ -237,6 +237,7 @@ void send_inputs(){
 
 void setup() {
   pinMode(INTERRUPT_PIN, INPUT_PULLUP); //set default switch position to HIGH
+  pinMode(STATUS_LED_PIN, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), interrupt, FALLING); //when switch is pressed down
 
   for(int i = 0; i < PARAMETER_NUM; i++){
@@ -256,14 +257,19 @@ void setup() {
   //Initialize Serial 
   Serial.begin(9600);
   Serial.println("Setting up");
-  lcd.print("LOADING...");
+  lcd.print("Loading .");
 
   //Initialize I2C protocol (master)
   Wire.begin();
-
+  lcd.setCursor(0, 0);
+  lcd.print("Loading ..");
+  
   //Initialize servo PWM and arm the ESC
   esc.attach(ESC_PIN); //set esc to pin
   esc.writeMicroseconds(MIN_THROTTLE); //minimum throttle; arm the esc
+
+  lcd.setCursor(0, 0);
+  lcd.print("Loading ...");
 
   while(1){
     Wire.requestFrom(9, 1);
@@ -272,6 +278,8 @@ void setup() {
     }
     delay(100);
   }
+  lcd.setCursor(0, 0);
+  lcd.print("Loading .....");
 
   lcd.setCursor(0, 0);
   lcd.print("USE PREVIOUS TARE?");
@@ -285,7 +293,8 @@ void setup() {
 
 void loop() {
   char key = keypad.getKey();
-  
+  digitalWrite(STATUS_LED_PIN, HIGH);
+
   if(!tared){
     if(key){
       if(!choosing){
