@@ -127,9 +127,9 @@ void throttle_down(){
     }
     lcd.setCursor(0, 3);
     lcd.print("THROTTLE:" + String(throttle));
-    delay(THROTTLE_UP_DELAY);
+    delay(THROTTLE_UP_DELAY/10);
   }
-  delay(INCREMENT_TIME);
+  //delay(INCREMENT_TIME);
 }
 
 void throttle_up(){
