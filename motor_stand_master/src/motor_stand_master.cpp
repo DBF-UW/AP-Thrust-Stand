@@ -88,7 +88,7 @@ void pause_screen(){
   lcd.setCursor(0, 3);
 }
 
-void throttle_slew(int start, int next_cycle_length){
+void throttle_ramp_up(int start, int next_cycle_length){
   for(cycle_length = start; cycle_length <= next_cycle_length; cycle_length++){
     if(done_throttling){
       return; //return to the main loop and throttle down
@@ -109,27 +109,28 @@ void throttle_slew(int start, int next_cycle_length){
 }
 
 void throttle_down(){
-  if(!read_gradient){
-    Wire.beginTransmission(9);
-    Wire.write('w');
-    Wire.endTransmission();
-  }
-  for(int i = cycle_length; i >= MIN_THROTTLE; i--){
-    esc.writeMicroseconds(i);
-    int throttle = map(i, ESC_MIN, ESC_MAX, 0, 100);
-    if(throttle == 99){
-      lcd.setCursor(11, 3);
-      lcd.print(" ");
-    }
-    if(throttle == 9){
-      lcd.setCursor(10, 3);
-      lcd.print(" ");
-    }
-    lcd.setCursor(0, 3);
-    lcd.print("THROTTLE:" + String(throttle));
-    delay(THROTTLE_UP_DELAY/10);
-  }
+  // if(!read_gradient){
+  //   Wire.beginTransmission(9);
+  //   Wire.write('w');
+  //   Wire.endTransmission();
+  // }
+  // for(int i = cycle_length; i >= MIN_THROTTLE; i--){
+  //   esc.writeMicroseconds(i);
+  //   int throttle = map(i, ESC_MIN, ESC_MAX, 0, 100);
+  //   if(throttle == 99){
+  //     lcd.setCursor(11, 3);
+  //     lcd.print(" ");
+  //   }
+  //   if(throttle == 9){
+  //     lcd.setCursor(10, 3);
+  //     lcd.print(" ");
+  //   }
+  //   lcd.setCursor(0, 3);
+  //   lcd.print("THROTTLE:" + String(throttle));
+  //   delay(THROTTLE_UP_DELAY/10);
+  // }
   //delay(INCREMENT_TIME);
+  esc.writeMicroseconds(1000);
 }
 
 void throttle_up(){
@@ -155,16 +156,16 @@ void throttle_up(){
         paused = true;
         return;
       }
-      if(!read_gradient){
+      if(!read_ramp_up_data){
         Wire.beginTransmission(9);
         Wire.write('w');
         Wire.endTransmission();
       }
 
       int next_cycle_length = min(cycle_length + pwm_increment, MAX_THROTTLE);
-      throttle_slew(cycle_length, next_cycle_length);
+      throttle_ramp_up(cycle_length, next_cycle_length);
       
-      if(!read_gradient){
+      if(!read_ramp_up_data){
         Wire.beginTransmission(9);
         Wire.write('g');
         Wire.endTransmission();
@@ -397,13 +398,23 @@ void loop() {
     if(key){
       if(paused){
         if(key == SEND_INPUT){
-          Wire.beginTransmission(9);
-          Wire.write('g');
-          Wire.endTransmission();
+          //unpause data recording before the throttle ramp up if yes gradeint reading
+          if(read_ramp_up_data){
+            Wire.beginTransmission(9);
+            Wire.write('g');
+            Wire.endTransmission();
+          }
           paused = false;
           testing_screen();
           int next_cycle_length = min(cycle_length + pwm_increment, MAX_THROTTLE);
-          throttle_slew(MIN_THROTTLE, next_cycle_length);
+          throttle_ramp_up(MIN_THROTTLE, next_cycle_length);
+
+          //unpause data recording after the throttle ramp up if no gradient reading
+          if(!read_ramp_up_data){
+            Wire.beginTransmission(9);
+            Wire.write('g');
+            Wire.endTransmission();
+          }
         }
       }
       if(key == BACK_BUTTON && parameter_index > 0){
@@ -414,11 +425,11 @@ void loop() {
       }
       else if(parameter_index == PARAMETER_NUM - 1){
         if(key == 'A'){
-          read_gradient = true;
+          read_ramp_up_data = true;
           setup_next_input();
         }
         else if(key == 'B'){
-          read_gradient = false;
+          read_ramp_up_data = false;
           setup_next_input();
         }
       }

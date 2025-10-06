@@ -21,8 +21,8 @@ const int STATUS_LED_PIN = 8;
 ///////////////////////////////////////////////////////////////////////////////////////
 //THRUST SENSOR DEFINITIONS
 
-const int THRUST_DOUT_PIN = 3;
-const int THRUST_SCK_PIN = 4;
+const int THRUST_DOUT_PIN = 5;
+const int THRUST_SCK_PIN = 6;
 
 String thrust_signal;
 float KNOWN_THRUST;
@@ -32,8 +32,8 @@ HX711_ADC ThrustSensor(THRUST_DOUT_PIN, THRUST_SCK_PIN);
 ///////////////////////////////////////////////////////////////////////////////////////
 // TORQUE SENSOR DEFINITIONS
 
-const int TORQUE_DOUT_PIN = 5;    // mcu > hx711 data out pin
-const int TORQUE_SCK_PIN = 6;   // mcu > hx711 serial clock pin
+const int TORQUE_DOUT_PIN = 3;    // mcu > hx711 data out pin
+const int TORQUE_SCK_PIN = 4;   // mcu > hx711 serial clock pin
 
 String torque_signal;
 float KNOWN_TORQUE; //for taring

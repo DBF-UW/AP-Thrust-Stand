@@ -112,7 +112,7 @@ void init_LoadCell () {
   TorqueSensor.begin();
   ThrustSensor.begin();
   
-  boolean _tare = false; //set this to false if you don't want tare to be performed in the next step
+  boolean _tare = true; //set this to false if you don't want tare to be performed in the next step
   TorqueSensor.start(2000, _tare); //tare for 2 seconds
   ThrustSensor.start(2000, _tare);
 
@@ -285,10 +285,10 @@ void loop(){
         objects = 0;
         prev_second = millis();
       }
-      Serial.println("reading_on");
+      //Serial.println("reading_on");
       if(TorqueSensor.update() && ThrustSensor.update()){
 
-        Serial.println("update from sensors");
+        //Serial.println("update from sensors");
         //CURRENT/VOLTAGE SENSOR READING
         int current_value_in = analogRead(CURRENT_PIN);
         int voltage_value_in = analogRead(VOLTAGE_PIN);          
@@ -328,7 +328,7 @@ void loop(){
         float torque_data = TorqueSensor.getData();  
         float thrust_data = ThrustSensor.getData();  
 
-        Serial.println("about to print to consol");
+        //Serial.println("about to print to consol");
         //RATE LIMIT THE WRITING TO AVOID OVERLOADING AND KEEP CONSISTENT DATAPOINTS
         if(!paused && millis() > last_serial_timestamp + SERIAL_PRINT_INTERVAL){     
           last_serial_timestamp = millis();

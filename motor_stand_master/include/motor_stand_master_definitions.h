@@ -76,7 +76,7 @@ int pwm_increment;
 int cycle_length;
 
 bool start_motor; 
-bool read_gradient;
+bool read_ramp_up_data;
 bool piecewise;
 bool paused = false;
 volatile bool done_throttling;
