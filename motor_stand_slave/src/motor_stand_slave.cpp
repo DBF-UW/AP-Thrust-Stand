@@ -272,7 +272,7 @@ void loop(){
       SD.remove(file_name);
     }
     data_file = SD.open(file_name, FILE_WRITE); //create the file
-    data_file.println("Current (A), Voltage (V), Torque (N.mm), Thrust (N), RPM, Airspeed (m/s)"); //set up csv headers
+    data_file.println("Time (s), Current (A), Voltage (V), Torque (N.mm), Thrust (N), RPM, Airspeed (m/s)"); //set up csv headers
     new_file_created = false;
   }
 
@@ -338,6 +338,7 @@ void loop(){
         if(!paused && millis() > last_serial_timestamp + SERIAL_PRINT_INTERVAL){     
           last_serial_timestamp = millis();
 
+          Serial.print(F(" | TIME (s): ")); Serial.print((float) millis() / 1000);
           Serial.print(F("Current: ")); Serial.print(average_current);
           Serial.print(F(" | Voltage: ")); Serial.print(voltage);
           Serial.print(F(" | Torque: ")); Serial.print(torque_data);
@@ -346,6 +347,7 @@ void loop(){
           Serial.print(F(" | AIRSPEED: ")); Serial.println(airspeed);
           Serial.print(F(" | MEMORY: ")); Serial.println(free_memory());
 
+          data_file.print((float) millis() / 1000); data_file.print(", ");
           data_file.print(average_current); data_file.print(", "); 
           data_file.print(voltage); data_file.print(", ");
           data_file.print(torque_data); data_file.print(", ");
