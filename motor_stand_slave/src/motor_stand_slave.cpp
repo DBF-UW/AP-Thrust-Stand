@@ -217,7 +217,7 @@ void loop(){
     Serial.println(String(ZERO_CURRENT_VOLTAGE));
 
     EEPROM.get(40, ZERO_VOLTAGE);
-    Serial.print(F("Current: "));
+    Serial.print(F("Voltage: "));
     Serial.println(String(ZERO_VOLTAGE));
 
     Serial.println(F("Done retrieving calibration factors"));

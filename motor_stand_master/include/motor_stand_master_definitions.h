@@ -39,6 +39,7 @@ const byte COLS = 4; // columns
 const char BACK_BUTTON = 'D';
 const char ENTER_INPUT = '#';
 const char SEND_INPUT = '*';
+const char SKIP_TARE = 'A';
  
 // Define the keymap
 char keys[ROWS][COLS] = {
@@ -68,7 +69,7 @@ const int ESC_MIN = 1000;
 const int ESC_MAX = 2000;
 
 const int ESC_PIN = 3;
-int INCREMENT_TIME;
+long INCREMENT_TIME;
 const int THROTTLE_UP_DELAY = 10;
 
 int throttleIncrement;

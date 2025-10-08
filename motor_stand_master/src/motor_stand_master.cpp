@@ -23,12 +23,12 @@ void tare_ui(){
   lcd.clear();
   lcd.print(tare_names[tare_index] + tare_values[tare_index]);
   lcd.setCursor(0, 2);
-  lcd.print("NEXT: " +  String(ENTER_INPUT) + "             ");
+  lcd.print("NEXT: " +  String(ENTER_INPUT) + "| SKIP: " + String(SKIP_TARE) + "    ");
   lcd.setCursor(0, 3);
   if(tare_index == 0){
-    lcd.print("UNITS: N.mm");
+    lcd.print("UNITS: N.m");
   }
-  else{
+  else if(tare_index == 1){
     lcd.print("UNITS: N");
   }
   lcd.setCursor(0, 1);
@@ -227,10 +227,107 @@ void send_inputs(){
   
   send_parameters("m", parameter_values[3]);
 
-  INCREMENT_TIME = parameter_values[4].toInt() * 1000;
+  INCREMENT_TIME = (long) parameter_values[4].toInt() * 1000;
   Serial.println("TEST PARAMETERS CONFIRMED");
 
   testing_screen();
+}
+
+void tare_torque(){
+  send_parameters("q", tare_values[tare_index]); //tell slave to tare torque
+  while(1){
+    Wire.requestFrom(9, 1);
+    if(Wire.read() == 1){
+      break;
+    }
+    delay(100);
+  }
+  tare_index++;
+  tare_ui();
+  sending = false;
+}
+
+void tare_thrust(){
+  send_parameters("r", tare_values[tare_index]); //tell slave to tare thrust
+  while(1){
+    Wire.requestFrom(9, 1);
+    if(Wire.read() == 1){
+      break;
+    }
+    delay(100);
+  }
+  tare_index++;
+  send_ui();
+}
+
+void tare_analog(){
+  Wire.beginTransmission(9);
+  Wire.write('a');
+  Wire.endTransmission();
+  while(1){
+    Wire.requestFrom(9, 1);
+    if(Wire.read() == 1){
+      break;
+    }
+    delay(100);
+  }
+  lcd_home();
+  tared = true;
+  sending = false;
+}
+
+void not_sending_tare_values(char key){
+  if(key >= '0' && key <= '9' && input.length() < 9){
+    input += key;
+    lcd.print(key);
+  }  
+  else if(key == SKIP_TARE){ //check for tare skipping keystroke
+    Serial.println("SKIP");
+    Serial.println(tare_index); //0 - torque, 1 - thrust, 2 - analog, END
+    tare_index++;
+    Serial.println(tare_index);
+    if(tare_index == 2){ //go to the send_ui because taring analog sensors goes straight to sending instead of tare_ui
+      send_ui();
+      sending = true;
+    }
+    else{
+      Serial.println("going into tare ui");
+      tare_ui();
+      sending = false;
+    }
+  } 
+  else if(key == ENTER_INPUT && input != "" && tare_index < TARE_NUM){
+    tare_values[tare_index] = input;
+    input = "";
+    send_ui();
+    sending = true;
+  }
+}
+
+void send_tare_values(char key){
+  Serial.println("sending");
+  if(key == BACK_BUTTON && tare_index != 2){
+    tare_ui();
+    sending = false;
+  }
+  else if(tare_index == 2 && key == SKIP_TARE){ //for skipping during the analog part (since it goes straight to sending)
+      lcd_home();
+      tared = true;
+      sending = false;
+  }
+  else if(key == SEND_INPUT){ //the button to zero the values
+    lcd.setCursor(0, 1);
+    lcd.print("CALIBRATING...");
+    if(tare_index == 0){
+      tare_torque();
+    }
+    else if(tare_index == 1){
+      tare_thrust();
+    }
+    else if(tare_index == 2){ //tell slave to tare analog sensors
+      tare_analog();
+    }
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -299,71 +396,15 @@ void loop() {
   if(!tared){
     if(key){
       if(!choosing){
-        if(!sending){
-          if(key >= '0' && key <= '9' && input.length() < 9){
-            input += key;
-            lcd.print(key);
-          }   
-          else if(key == ENTER_INPUT && input != "" && tare_index < TARE_NUM){
-            tare_values[tare_index] = input;
-            input = "";
-            send_ui();
-            sending = true;
-          }
+        if(!sending){ //the user is inputting in calibration values but NOT sending it yet
+          not_sending_tare_values(key);
         }
-        else{
-          if(key == BACK_BUTTON && tare_index != 2){
-            tare_ui();
-            sending = false;
-          }
-          else if(key == SEND_INPUT){ //the button to zero the values
-            lcd.setCursor(0, 1);
-            lcd.print("CALIBRATING...");
-            if(tare_index == 0){
-              send_parameters("q", tare_values[tare_index]); //tell slave to tare torque
-              while(1){
-                Wire.requestFrom(9, 1);
-                if(Wire.read() == 1){
-                  break;
-                }
-                delay(100);
-              }
-              tare_index++;
-              tare_ui();
-              sending = false;
-            }
-            else if(tare_index == 1){
-              send_parameters("r", tare_values[tare_index]); //tell slave to tare thrust
-              while(1){
-                Wire.requestFrom(9, 1);
-                if(Wire.read() == 1){
-                  break;
-                }
-                delay(100);
-              }
-              tare_index++;
-              send_ui();
-            }
-            else if(tare_index == 2){ //tell slave to tare analog sensors
-              Wire.beginTransmission(9);
-              Wire.write('a');
-              Wire.endTransmission();
-              while(1){
-                Wire.requestFrom(9, 1);
-                if(Wire.read() == 1){
-                  break;
-                }
-                delay(100);
-              }
-              lcd_home();
-              tared = true;
-              sending = false;
-            }
-          }
+        else{ //the user is going to send the tare values to the other arduino to calibrate
+          send_tare_values(key);
         }
       }
       else{
-        if(key == 'A'){
+        if(key == 'A'){ //skip the whole tare part
           Wire.beginTransmission(9);
           Wire.write('p');
           Wire.endTransmission();
@@ -373,7 +414,7 @@ void loop() {
           parameter_index = 0;
           lcd_home();
         }
-        else if(key == 'B'){
+        else if(key == 'B'){ //do the taring process
           tare_index = 0;
           sending = false;
           choosing = false;
@@ -393,7 +434,10 @@ void loop() {
       end_testing();
     }
 
-    Serial.println(cycle_length);
+    // Serial.println(cycle_length);
+    Serial.print(parameter_values[4].toInt() * 1000);
+    Serial.print(" | ");
+    Serial.println(INCREMENT_TIME);
     //if a keystroke has been entered from the keypad
     if(key){
       if(paused){
