@@ -217,7 +217,16 @@ void setup_prev_input(){
 
 void send_inputs(){
   send_parameters("f", parameter_values[0]);
-  delay(100);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("SETTING UP FILE...");
+  while(1){
+    Wire.requestFrom(9, 1);
+    if(Wire.read() == 1){
+      break;
+    }
+    delay(100);
+  }
 
   int max_throttle_input = min(max(parameter_values[1].toInt(), 0), 100);
   MAX_THROTTLE = map(max_throttle_input, 0, 100, ESC_MIN, ESC_MAX);
@@ -225,6 +234,7 @@ void send_inputs(){
   throttleIncrement = min(parameter_values[2].toInt(), max_throttle_input);
   pwm_increment = map(throttleIncrement, 0, 100, 0, ESC_MAX - ESC_MIN); //1% -> 99% written in terms of PWM cycle length, assuming a linear mapping
   
+  Serial.println(parameter_values[3]);
   send_parameters("m", parameter_values[3]);
 
   INCREMENT_TIME = (long) parameter_values[4].toInt() * 1000;
@@ -435,9 +445,9 @@ void loop() {
     }
 
     // Serial.println(cycle_length);
-    Serial.print(parameter_values[4].toInt() * 1000);
-    Serial.print(" | ");
-    Serial.println(INCREMENT_TIME);
+    // Serial.print(parameter_values[4].toInt() * 1000);
+    // Serial.print(" | ");
+    // Serial.println(INCREMENT_TIME);
     //if a keystroke has been entered from the keypad
     if(key){
       if(paused){
