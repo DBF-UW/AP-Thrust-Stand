@@ -381,6 +381,7 @@ void setup() {
 
   while(1){
     Wire.requestFrom(9, 1);
+    delay(100);
     if(Wire.read() == 1){
       break;
     }

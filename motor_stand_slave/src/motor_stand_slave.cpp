@@ -144,6 +144,7 @@ void setup(){
 
   pinMode(RPM_PIN, INPUT);
   pinMode(STATUS_LED_PIN, OUTPUT);
+  digitalWrite(STATUS_LED_PIN, LOW);
 
   signal = "";
   reading_on = false;
@@ -178,9 +179,9 @@ void setup(){
 
   //Initialize SD card; If no file is attached or something else goes wrong, 
   //the code put itself in an infinite loop
-  if (!SD.begin(SD_PIN)) {
+  while (!SD.begin(SD_PIN)) {
     Serial.println(F("Failed to initialize SD card"));
-    while(1); //infinite loop to prevent further looping by loop()
+    delay(100);
   }
   ready = true;
   digitalWrite(STATUS_LED_PIN, HIGH);
