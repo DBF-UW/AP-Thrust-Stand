@@ -274,7 +274,7 @@ void loop(){
       SD.remove(file_name);
     }
     data_file = SD.open(file_name, FILE_WRITE); //create the file
-    data_file.println("Time (s), Current (A), Voltage (V), Torque (N.mm), Thrust (N), RPM, Airspeed (m/s)"); //set up csv headers
+    data_file.println("Time (s), Current (A), Voltage (V), Torque (N.mm), Thrust (mN), RPM, Airspeed (m/s)"); //set up csv headers
     new_file_created = false;
     ready = true;
   }

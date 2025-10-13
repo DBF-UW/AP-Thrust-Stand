@@ -26,10 +26,10 @@ void tare_ui(){
   lcd.print("NEXT: " +  String(ENTER_INPUT) + "| SKIP: " + String(SKIP_TARE) + "    ");
   lcd.setCursor(0, 3);
   if(tare_index == 0){
-    lcd.print("UNITS: N.m");
+    lcd.print("UNITS: N.mm");
   }
   else if(tare_index == 1){
-    lcd.print("UNITS: N");
+    lcd.print("UNITS: mN");
   }
   lcd.setCursor(0, 1);
 }
