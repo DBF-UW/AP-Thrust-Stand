@@ -75,6 +75,7 @@ const int THROTTLE_UP_DELAY = 10;
 int throttleIncrement;
 int pwm_increment;
 int cycle_length;
+int RAMP_UP_DELAY = 1500;
 
 bool start_motor; 
 bool read_ramp_up_data;

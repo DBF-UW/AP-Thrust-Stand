@@ -3,8 +3,6 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //HELPER FUNCTIONS:
-// Lincoln Was Here
-// Lincoln was here 2
 
 void lcd_home(){
   input = "";
@@ -156,7 +154,7 @@ void throttle_up(){
         paused = true;
         return;
       }
-      if(!read_ramp_up_data){
+      if(!read_ramp_up_data){        
         Wire.beginTransmission(9);
         Wire.write('w');
         Wire.endTransmission();
@@ -164,8 +162,18 @@ void throttle_up(){
 
       int next_cycle_length = min(cycle_length + pwm_increment, MAX_THROTTLE);
       throttle_ramp_up(cycle_length, next_cycle_length);
-      
+
+      if(done_throttling){
+        return; //return to the main loop and throttle down
+      }
+
       if(!read_ramp_up_data){
+        long ramp_up_delay_start = millis();
+        while(millis() < ramp_up_delay_start + RAMP_UP_DELAY){
+          if(done_throttling){
+            return; //return to the main loop and throttle down
+          }
+        }
         Wire.beginTransmission(9);
         Wire.write('g');
         Wire.endTransmission();
@@ -459,52 +467,69 @@ void loop() {
             Wire.write('g');
             Wire.endTransmission();
           }
-          paused = false;
           testing_screen();
           int next_cycle_length = min(cycle_length + pwm_increment, MAX_THROTTLE);
           throttle_ramp_up(MIN_THROTTLE, next_cycle_length);
+          if(done_throttling){
+            Serial.println("THROTTLING DOWN");
+            throttle_down();
+            end_testing();
+          }
 
           //unpause data recording after the throttle ramp up if no gradient reading
           if(!read_ramp_up_data){
+            long ramp_up_delay_start = millis();
+            while(millis() < ramp_up_delay_start + RAMP_UP_DELAY){
+              if(done_throttling){
+                Serial.println("THROTTLING DOWN");
+                throttle_down();
+                end_testing();
+              }
+            }
             Wire.beginTransmission(9);
             Wire.write('g');
             Wire.endTransmission();
           }
+
+          prev_interval_timestamp = millis();
+          paused = false;
         }
       }
-      if(key == BACK_BUTTON && parameter_index > 0){
-        setup_prev_input();
-      }
-      else if(key == ENTER_INPUT && input != "" && parameter_index < PARAMETER_NUM){
-        setup_next_input();
-      }
-      else if(parameter_index == PARAMETER_NUM - 1){
-        if(key == 'A'){
-          read_ramp_up_data = true;
+      else{
+        if(key == BACK_BUTTON && parameter_index > 0){
+          setup_prev_input();
+        }
+        else if(key == ENTER_INPUT && input != "" && parameter_index < PARAMETER_NUM){
           setup_next_input();
         }
-        else if(key == 'B'){
-          read_ramp_up_data = false;
-          setup_next_input();
+        else if(parameter_index == PARAMETER_NUM - 1){
+          if(key == 'A'){
+            read_ramp_up_data = true;
+            setup_next_input();
+          }
+          else if(key == 'B'){
+            read_ramp_up_data = false;
+            setup_next_input();
+          }
         }
-      }
-      else if(parameter_index == PARAMETER_NUM){
-        if(key == 'A'){
-          piecewise = true;
-          setup_next_input();
+        else if(parameter_index == PARAMETER_NUM){
+          if(key == 'A'){
+            piecewise = true;
+            setup_next_input();
+          }
+          else if(key == 'B'){
+            piecewise = false;
+            setup_next_input();
+          }
         }
-        else if(key == 'B'){
-          piecewise = false;
-          setup_next_input();
+        else if(key == SEND_INPUT && parameter_index == PARAMETER_NUM + 1){
+          send_inputs();
         }
-      }
-      else if(key == SEND_INPUT && parameter_index == PARAMETER_NUM + 1){
-        send_inputs();
-      }
-      else if(key >= '0' && key <= '9'){
-        if(input.length() < 3){ 
-          input += key;
-          lcd.print(key);
+        else if(key >= '0' && key <= '9'){
+          if(input.length() < 3){ 
+            input += key;
+            lcd.print(key);
+          }
         }
       }
     }
