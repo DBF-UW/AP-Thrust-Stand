@@ -194,21 +194,21 @@ void setup_next_input(){
     parameter_values[parameter_index] = input;
   }
   parameter_index++;
-  if(parameter_index == PARAMETER_NUM - 1){
+  if(parameter_index == PARAMETER_NUM){
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("SMOOTH DATA?");
     lcd.setCursor(0, 3);
     lcd.print("YES: A | NO: B");
   }
-  else if(parameter_index == PARAMETER_NUM){
+  else if(parameter_index == PARAMETER_NUM + 1){
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("PIECEWISE?");
     lcd.setCursor(0, 3);
     lcd.print("YES: A | NO: B");
   }
-  else if(parameter_index == PARAMETER_NUM + 1){
+  else if(parameter_index == PARAMETER_NUM + 2){
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("PRESS " + String(SEND_INPUT) + " TO START");
@@ -219,8 +219,24 @@ void setup_next_input(){
 }
 
 void setup_prev_input(){
-  parameter_index = min(parameter_index - 1, PARAMETER_NUM - 1);
-  lcd_home();
+  parameter_index--;
+  if(parameter_index == PARAMETER_NUM){
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("SMOOTH DATA?");
+    lcd.setCursor(0, 3);
+    lcd.print("YES: A | NO: B");
+  }
+  else if(parameter_index == PARAMETER_NUM + 1){
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("PIECEWISE?");
+    lcd.setCursor(0, 3);
+    lcd.print("YES: A | NO: B");
+  }
+  else{
+    lcd_home();
+  }
 }
 
 void send_inputs(){
@@ -502,7 +518,7 @@ void loop() {
         else if(key == ENTER_INPUT && input != "" && parameter_index < PARAMETER_NUM){
           setup_next_input();
         }
-        else if(parameter_index == PARAMETER_NUM - 1){
+        else if(parameter_index == PARAMETER_NUM){
           if(key == 'A'){
             read_ramp_up_data = true;
             setup_next_input();
@@ -512,7 +528,7 @@ void loop() {
             setup_next_input();
           }
         }
-        else if(parameter_index == PARAMETER_NUM){
+        else if(parameter_index == PARAMETER_NUM + 1){
           if(key == 'A'){
             piecewise = true;
             setup_next_input();
@@ -522,7 +538,7 @@ void loop() {
             setup_next_input();
           }
         }
-        else if(key == SEND_INPUT && parameter_index == PARAMETER_NUM + 1){
+        else if(key == SEND_INPUT && parameter_index == PARAMETER_NUM + 2){
           send_inputs();
         }
         else if(key >= '0' && key <= '9'){
