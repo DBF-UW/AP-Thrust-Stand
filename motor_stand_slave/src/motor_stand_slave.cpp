@@ -14,7 +14,7 @@ void receiveEvent(int bytes){
   }
 
   if(type == 'f'){ //write to flie
-    new_file_created = true;
+    creating_new_file = true;
   }
   else if(type == 'm'){ //set marker
     marker_sent = true;
@@ -149,7 +149,7 @@ void setup(){
   signal = "";
   reading_on = false;
   stop = false;
-  new_file_created = false;
+  creating_new_file = false;
   marker_sent = false;
   zero_torque = false;
   zero_thrust = false;
@@ -265,9 +265,13 @@ void loop(){
     ready = true;
   }
 
-  if(new_file_created){ //create a new file
+  if(creating_new_file){ //create a new file
     ready = false;
     String file_name = "TEST_" + signal + ".csv";
+    while(!SD.begin(SD_PIN)){
+      Serial.println("SD CARD NOT INITIALIZED");
+      delay(100);
+    }
     if (SD.exists(file_name)) {
       Serial.print("Deleting existing file: ");
       Serial.println(file_name);
@@ -275,7 +279,7 @@ void loop(){
     }
     data_file = SD.open(file_name, FILE_WRITE); //create the file
     data_file.println("Time (s), Current (A), Voltage (V), Torque (N.mm), Thrust (mN), RPM, Airspeed (m/s)"); //set up csv headers
-    new_file_created = false;
+    creating_new_file = false;
     ready = true;
   }
 
