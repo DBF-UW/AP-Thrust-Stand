@@ -44,6 +44,12 @@ void receiveEvent(int bytes){
   else if(type == 'g'){
     paused = false;
   }
+  else if(type == 'n'){
+    release_banner = true;
+  }
+  else if(type == 'c'){
+    close_banner = true;
+  }
 }
 
 void requestEvent(){
@@ -144,7 +150,11 @@ void setup(){
 
   pinMode(RPM_PIN, INPUT);
   pinMode(STATUS_LED_PIN, OUTPUT);
+
   digitalWrite(STATUS_LED_PIN, LOW);
+
+  banner_release.attach(BANNER_PIN);
+  banner_release.writeMicroseconds(1000);
 
   signal = "";
   reading_on = false;
@@ -154,6 +164,8 @@ void setup(){
   zero_torque = false;
   zero_thrust = false;
   paused = false;
+  release_banner = false;
+  close_banner = false;
   RPM = 0;
   ready = false;
   last_serial_timestamp = 0;
@@ -161,7 +173,6 @@ void setup(){
     measurements[i] = 0;
   }
 
- 
   see_object = false;
   attachInterrupt(digitalPinToInterrupt(RPM_PIN), count, CHANGE);
   //Initialize I2C protocol (slave)
@@ -288,6 +299,16 @@ void loop(){
     Serial.println(signal);
     Serial.println(String(MARKERS));
     marker_sent = false;
+  }
+
+  if(release_banner){
+    banner_release.writeMicroseconds(2000);
+    release_banner = false;
+  }
+
+  if(close_banner){
+    banner_release.writeMicroseconds(1000);
+    close_banner = false;
   }
 
   if(data_file){

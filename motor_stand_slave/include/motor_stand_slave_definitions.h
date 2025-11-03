@@ -3,6 +3,7 @@
 #include <SD.h>
 #include <HX711_ADC.h>   
 #include <EEPROM.h>
+#include <Servo.h>
  
 ///////////////////////////////////////////////////////////////////////////////////////
 //AIRSPEED SENSOR DEFINITIONS
@@ -70,6 +71,12 @@ unsigned long last_serial_timestamp;
 bool ready;
 
 ///////////////////////////////////////////////////////////////////////////////////////
+// BANNER RELEASE DEFINITIONS
+const int BANNER_PIN = 9;
+Servo banner_release; 
+
+///////////////////////////////////////////////////////////////////////////////////////
+
 //PARAMETER I2C RECIEVER AND SD CARD WRITING DEFINITIONS
 
 const int SD_PIN = 10; //change this to change the SD card pin number
@@ -85,5 +92,7 @@ bool zero_thrust;
 bool zero_analog_sensors;
 bool use_prev_calibration;
 bool paused;
+bool release_banner;
+bool close_banner;
 
 ///////////////////////////////////////////////////////////////////////////////////////
