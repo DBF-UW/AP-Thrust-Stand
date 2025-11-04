@@ -45,10 +45,7 @@ void receiveEvent(int bytes){
     paused = false;
   }
   else if(type == 'n'){
-    release_banner = true;
-  }
-  else if(type == 'c'){
-    close_banner = true;
+    toggle_banner = true;
   }
 }
 
@@ -164,8 +161,8 @@ void setup(){
   zero_torque = false;
   zero_thrust = false;
   paused = false;
-  release_banner = false;
-  close_banner = false;
+  toggle_banner = false;
+  banner_status = 0;
   RPM = 0;
   ready = false;
   last_serial_timestamp = 0;
@@ -301,14 +298,16 @@ void loop(){
     marker_sent = false;
   }
 
-  if(release_banner){
-    banner_release.writeMicroseconds(2000);
-    release_banner = false;
-  }
-
-  if(close_banner){
-    banner_release.writeMicroseconds(1000);
-    close_banner = false;
+  if(toggle_banner){
+    if(banner_status = 0){
+      banner_release.writeMicroseconds(2000);
+      banner_status = 1;
+    }
+    else{
+      banner_release.writeMicroseconds(1000);
+      banner_status = 0;
+    }
+    toggle_banner = false;
   }
 
   if(data_file){

@@ -475,6 +475,12 @@ void loop() {
     // Serial.println(INCREMENT_TIME);
     //if a keystroke has been entered from the keypad
     if(key){ //safeguard against user input while a motor is running
+      if(key == 'C'){ //Open or close the banner
+        Wire.beginTransmission(9);
+        Wire.write('n');
+        Wire.endTransmission();
+      }
+
       if(paused){ //inputs while the test is paused
         if(key == SEND_INPUT){
           //unpause data recording before the throttle ramp up if yes gradeint reading
@@ -546,18 +552,6 @@ void loop() {
             input += key;
             lcd.print(key);
           }
-        }
-      }
-      else{ //inputs while the test is running
-        if(key == 'A'){ //RELEASE the banner
-          Wire.beginTransmission(9);
-          Wire.write('n');
-          Wire.endTransmission();
-        }
-        else if(key == 'B'){ //CLOSE the banner
-          Wire.beginTransmission(9);
-          Wire.write('c');
-          Wire.endTransmission();
         }
       }
     }

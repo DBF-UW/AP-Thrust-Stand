@@ -74,6 +74,7 @@ bool ready;
 // BANNER RELEASE DEFINITIONS
 const int BANNER_PIN = 9;
 Servo banner_release; 
+bool banner_status; //0 = closed, 1 = open
 
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -92,7 +93,6 @@ bool zero_thrust;
 bool zero_analog_sensors;
 bool use_prev_calibration;
 bool paused;
-bool release_banner;
-bool close_banner;
+bool toggle_banner;
 
 ///////////////////////////////////////////////////////////////////////////////////////
