@@ -187,6 +187,7 @@ void setup(){
 
   //Initialize SD card; If no file is attached or something else goes wrong, 
   //the code put itself in an infinite loop
+  Serial.print("Initializing the SD card");
   while (!SD.begin(SD_PIN)) {
     Serial.println(F("Failed to initialize SD card"));
     delay(100);
@@ -299,7 +300,7 @@ void loop(){
   }
 
   if(toggle_banner){
-    if(banner_status = 0){
+    if(banner_status == 0){
       banner_release.writeMicroseconds(2000);
       banner_status = 1;
     }
