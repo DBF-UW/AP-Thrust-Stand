@@ -277,10 +277,6 @@ void loop(){
   if(creating_new_file){ //create a new file
     ready = false;
     String file_name = "TEST_" + signal + ".csv";
-    while(!SD.begin(SD_PIN)){
-      Serial.println("SD CARD NOT INITIALIZED");
-      delay(100);
-    }
     if (SD.exists(file_name)) {
       Serial.print("Deleting existing file: ");
       Serial.println(file_name);
