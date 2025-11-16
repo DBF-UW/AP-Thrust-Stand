@@ -375,7 +375,7 @@ void setup() {
   Wire.begin();
   lcd.setCursor(0, 0);
   lcd.print("Loading ..");
-  
+
   //Initialize servo PWM and arm the ESC
   esc.attach(ESC_PIN); //set esc to pin
   esc.writeMicroseconds(MIN_THROTTLE); //minimum throttle; arm the esc
@@ -415,24 +415,18 @@ void loop() {
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("ZEROING...");
-      while(1){
-        Wire.requestFrom(9, 1);
-        if(Wire.read() == 1){
-          break;
-        }
-        delay(100);
-      }
+      delay(5000);
       initializing = false;
       choose_tare_option = true;
+      delay(100);
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("USE PREVIOUS TARE?");
+      lcd.setCursor(0, 3);
+      lcd.print("YES: A | NO: B");
     }
   }
-
-  if(choose_tare_option){
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("USE PREVIOUS TARE?");
-    lcd.setCursor(0, 3);
-    lcd.print("YES: A | NO: B");
+  else if(choose_tare_option){
     if(key){
       if(key == 'A'){ //skip the whole tare part
         Wire.beginTransmission(9);
@@ -455,24 +449,13 @@ void loop() {
       }
     }
   }
-  
-  if(taring){
+  else if(taring){
     if(!choosing){
       if(!sending){ //the user is inputting in calibration values but NOT sending it yet
         not_sending_tare_values(key);
       }
       else{ //the user is going to send the tare values to the other arduino to calibrate
         send_tare_values(key);
-      }
-    }
-    if(key){
-      if(!choosing){
-        if(!sending){ //the user is inputting in calibration values but NOT sending it yet
-          not_sending_tare_values(key);
-        }
-        else{ //the user is going to send the tare values to the other arduino to calibrate
-          send_tare_values(key);
-        }
       }
     }
   }
@@ -489,12 +472,6 @@ void loop() {
 
     //if a keystroke has been entered from the keypad
     if(key){ //safeguard against user input while a motor is running
-      // if(key == 'C'){ //Open or close the banner
-      //   Wire.beginTransmission(9);
-      //   Wire.write('n');
-      //   Wire.endTransmission();
-      // }
-
       if(paused){ //inputs while the test is paused
         if(key == SEND_INPUT){
           //unpause data recording before the throttle ramp up if yes gradeint reading
