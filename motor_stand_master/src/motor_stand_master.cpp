@@ -1,8 +1,10 @@
 #include <Arduino.h>
 #include <motor_stand_master_definitions.h>
 
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //HELPER FUNCTIONS:
+
 
 void lcd_home(){
   input = "";
@@ -15,6 +17,7 @@ void lcd_home(){
   lcd.print("THROTTLE:OFF");
   lcd.setCursor(0, 1);
 }
+
 
 void tare_ui(){
   input = "";
@@ -32,6 +35,7 @@ void tare_ui(){
   lcd.setCursor(0, 1);
 }
 
+
 void send_ui(){
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -47,6 +51,7 @@ void send_ui(){
   lcd.setCursor(0, 1);
 }
 
+
 void send_parameters(String type, String value){
   String signal = type + value;
   int length = signal.length();
@@ -54,6 +59,7 @@ void send_parameters(String type, String value){
   Wire.write(signal.c_str(), length);
   Wire.endTransmission();
 }
+
 
 void testing_screen(){
   lcd.clear();
@@ -72,6 +78,7 @@ void testing_screen(){
   prev_interval_timestamp = millis();
 }
 
+
 void end_testing(){
   Wire.beginTransmission(9);
   Wire.write('e');
@@ -79,12 +86,14 @@ void end_testing(){
   setup();
 }
 
+
 void pause_screen(){
   lcd.clear();
   lcd.setCursor(0, 1);
   lcd.print("PRESS * TO RESUME");
   lcd.setCursor(0, 3);
 }
+
 
 void throttle_ramp_up(int start, int next_cycle_length){
   for(cycle_length = start; cycle_length <= next_cycle_length; cycle_length++){
@@ -106,9 +115,11 @@ void throttle_ramp_up(int start, int next_cycle_length){
   cycle_length--;
 }
 
+
 void throttle_down(){
   esc.writeMicroseconds(1000);
 }
+
 
 void throttle_up(){
   if(cycle_length >= MAX_THROTTLE){
@@ -124,9 +135,11 @@ void throttle_up(){
         Wire.write('w');
         Wire.endTransmission();
 
+
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print("THROTTLING DOWN");
+
 
         throttle_down();
         pause_screen();
@@ -139,12 +152,15 @@ void throttle_up(){
         Wire.endTransmission();
       }
 
+
       int next_cycle_length = min(cycle_length + pwm_increment, MAX_THROTTLE);
       throttle_ramp_up(cycle_length, next_cycle_length);
+
 
       if(done_throttling){
         return; //return to the main loop and throttle down
       }
+
 
       if(!read_ramp_up_data){
         long ramp_up_delay_start = millis();
@@ -162,11 +178,13 @@ void throttle_up(){
   }
 }
 
+
 void interrupt(){
   if(start_motor){
     done_throttling = true;
   }
 }
+
 
 void setup_next_input(){
   if(parameter_index < PARAMETER_NUM){
@@ -197,6 +215,7 @@ void setup_next_input(){
   }
 }
 
+
 void setup_prev_input(){
   parameter_index--;
   if(parameter_index == PARAMETER_NUM){
@@ -218,6 +237,7 @@ void setup_prev_input(){
   }
 }
 
+
 void send_inputs(){
   send_parameters("f", parameter_values[0]);
   lcd.clear();
@@ -231,20 +251,25 @@ void send_inputs(){
     delay(100);
   }
 
+
   int max_throttle_input = min(max(parameter_values[1].toInt(), 0), 100);
   MAX_THROTTLE = map(max_throttle_input, 0, 100, ESC_MIN, ESC_MAX);
 
+
   throttleIncrement = min(parameter_values[2].toInt(), max_throttle_input);
   pwm_increment = map(throttleIncrement, 0, 100, 0, ESC_MAX - ESC_MIN); //1% -> 99% written in terms of PWM cycle length, assuming a linear mapping
-  
+ 
   Serial.println(parameter_values[3]);
   send_parameters("m", parameter_values[3]);
+
 
   INCREMENT_TIME = (long) parameter_values[4].toInt() * 1000;
   Serial.println("TEST PARAMETERS CONFIRMED");
 
+
   testing_screen();
 }
+
 
 void tare_torque(){
   send_parameters("q", tare_values[tare_index]); //tell slave to tare torque
@@ -260,6 +285,7 @@ void tare_torque(){
   sending = false;
 }
 
+
 void tare_thrust(){
   send_parameters("r", tare_values[tare_index]); //tell slave to tare thrust
   while(1){
@@ -272,6 +298,7 @@ void tare_thrust(){
   tare_index++;
   send_ui();
 }
+
 
 void tare_analog(){
   Wire.beginTransmission(9);
@@ -288,6 +315,7 @@ void tare_analog(){
   taring = false;
   sending = false;
 }
+
 
 void not_sending_tare_values(char key){
   if(key >= '0' && key <= '9' && input.length() < 9){
@@ -308,7 +336,7 @@ void not_sending_tare_values(char key){
       tare_ui();
       sending = false;
     }
-  } 
+  }
   else if(key == ENTER_INPUT && input != "" && tare_index < TARE_NUM){
     tare_values[tare_index] = input;
     input = "";
@@ -316,6 +344,7 @@ void not_sending_tare_values(char key){
     sending = true;
   }
 }
+
 
 void send_tare_values(char key){
   Serial.println("sending");
@@ -344,13 +373,16 @@ void send_tare_values(char key){
   }
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //MAIN DRIVER CODE:
+
 
 void setup() {
   pinMode(INTERRUPT_PIN, INPUT_PULLUP); //set default switch position to HIGH
   pinMode(STATUS_LED_PIN, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), interrupt, FALLING); //when switch is pressed down
+
 
   for(int i = 0; i < PARAMETER_NUM; i++){
     parameter_values[i] = "";
@@ -358,30 +390,35 @@ void setup() {
   input = "";
   parameter_index = 0;
 
+
   done_throttling = false;
   throttling_up = false;
   start_motor = false;
   cycle_length = MIN_THROTTLE;
-  
+ 
   // Set up the LCD display
   lcd.init();
   lcd.backlight();
-  //Initialize Serial 
+  //Initialize Serial
   Serial.begin(9600);
   Serial.println("Setting up");
   lcd.print("Loading .");
+
 
   //Initialize I2C protocol (master)
   Wire.begin();
   lcd.setCursor(0, 0);
   lcd.print("Loading ..");
-  
+
+
   //Initialize servo PWM and arm the ESC
   esc.attach(ESC_PIN); //set esc to pin
   esc.writeMicroseconds(MIN_THROTTLE); //minimum throttle; arm the esc
 
+
   lcd.setCursor(0, 0);
   lcd.print("Loading ...");
+
 
   while(1){
     Wire.requestFrom(9, 1);
@@ -394,7 +431,9 @@ void setup() {
   lcd.setCursor(0, 0);
   lcd.print("Loading .....");
 
+
   Serial.println("READY");
+
 
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -403,9 +442,11 @@ void setup() {
   choose_tare_option = false;
 }
 
+
 void loop() {
   char key = keypad.getKey();
   digitalWrite(STATUS_LED_PIN, HIGH);
+
 
   if(initializing){
     if(key && key == 'A'){
@@ -415,24 +456,18 @@ void loop() {
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("ZEROING...");
-      while(1){
-        Wire.requestFrom(9, 1);
-        if(Wire.read() == 1){
-          break;
-        }
-        delay(100);
-      }
+      delay(5000);
       initializing = false;
       choose_tare_option = true;
+      delay(100);
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("USE PREVIOUS TARE?");
+      lcd.setCursor(0, 3);
+      lcd.print("YES: A | NO: B");
     }
   }
-
-  if(choose_tare_option){
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("USE PREVIOUS TARE?");
-    lcd.setCursor(0, 3);
-    lcd.print("YES: A | NO: B");
+  else if(choose_tare_option){
     if(key){
       if(key == 'A'){ //skip the whole tare part
         Wire.beginTransmission(9);
@@ -455,8 +490,7 @@ void loop() {
       }
     }
   }
-  
-  if(taring){
+  else if(taring){
     if(!choosing){
       if(!sending){ //the user is inputting in calibration values but NOT sending it yet
         not_sending_tare_values(key);
@@ -465,36 +499,21 @@ void loop() {
         send_tare_values(key);
       }
     }
-    if(key){
-      if(!choosing){
-        if(!sending){ //the user is inputting in calibration values but NOT sending it yet
-          not_sending_tare_values(key);
-        }
-        else{ //the user is going to send the tare values to the other arduino to calibrate
-          send_tare_values(key);
-        }
-      }
-    }
   }
   else{ //can only do everything else once sensors have been tared
     if(start_motor && !paused){
       throttle_up();
     }
-    
+   
     if(done_throttling){
       Serial.println("THROTTLING DOWN");
       throttle_down();
       end_testing();
     }
 
+
     //if a keystroke has been entered from the keypad
     if(key){ //safeguard against user input while a motor is running
-      // if(key == 'C'){ //Open or close the banner
-      //   Wire.beginTransmission(9);
-      //   Wire.write('n');
-      //   Wire.endTransmission();
-      // }
-
       if(paused){ //inputs while the test is paused
         if(key == SEND_INPUT){
           //unpause data recording before the throttle ramp up if yes gradeint reading
@@ -512,6 +531,7 @@ void loop() {
             end_testing();
           }
 
+
           //unpause data recording after the throttle ramp up if no gradient reading
           if(!read_ramp_up_data){
             long ramp_up_delay_start = millis();
@@ -526,6 +546,7 @@ void loop() {
             Wire.write('g');
             Wire.endTransmission();
           }
+
 
           prev_interval_timestamp = millis();
           paused = false;
@@ -562,7 +583,7 @@ void loop() {
           send_inputs();
         }
         else if(key >= '0' && key <= '9'){
-          if(input.length() < 3){ 
+          if(input.length() < 3){
             input += key;
             lcd.print(key);
           }
@@ -571,3 +592,4 @@ void loop() {
     }
   }
 }
+
