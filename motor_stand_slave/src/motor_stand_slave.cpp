@@ -50,6 +50,9 @@ void receiveEvent(int bytes){
   else if(type == 'z'){
     set_zero_point = true;
   }
+  else if(type == 's'){
+    master_ready = true;
+  }
 }
 
 void requestEvent(){
@@ -183,7 +186,7 @@ void setup(){
   Wire.begin(9); //Slave arduino set to address 9
   Wire.onReceive(receiveEvent);
   Wire.onRequest(requestEvent);
-
+    
   //Initialize Serial
   Serial.begin(57600);
   Serial.println(F("Setting up"));
@@ -197,16 +200,20 @@ void setup(){
     Serial.println(F("Failed to initialize SD card"));
     delay(100);
   }
+  Serial.println("SD card done");
   ready = true;
+
   digitalWrite(STATUS_LED_PIN, HIGH);
 
-  delay(100);
-  ready = false;
-  if(set_zero_point){
-    init_LoadCell(true); //initialze the load cell and set the zero point
+  while(!set_zero_point){
+    Serial.println("Waiting for user input");
+    delay(100);
   }
+
+  digitalWrite(STATUS_LED_PIN, LOW);
+  init_LoadCell(true);
   set_zero_point = false;
-  ready = true;
+  digitalWrite(STATUS_LED_PIN, HIGH);
 }
 
 void loop(){
