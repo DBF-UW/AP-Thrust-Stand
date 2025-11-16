@@ -107,6 +107,27 @@ void throttle_ramp_up(int start, int next_cycle_length){
 }
 
 void throttle_down(){
+  // if(!read_gradient){
+  //   Wire.beginTransmission(9);
+  //   Wire.write('w');
+  //   Wire.endTransmission();
+  // }
+  // for(int i = cycle_length; i >= MIN_THROTTLE; i--){
+  //   esc.writeMicroseconds(i);
+  //   int throttle = map(i, ESC_MIN, ESC_MAX, 0, 100);
+  //   if(throttle == 99){
+  //     lcd.setCursor(11, 3);
+  //     lcd.print(" ");
+  //   }
+  //   if(throttle == 9){
+  //     lcd.setCursor(10, 3);
+  //     lcd.print(" ");
+  //   }
+  //   lcd.setCursor(0, 3);
+  //   lcd.print("THROTTLE:" + String(throttle));
+  //   delay(THROTTLE_UP_DELAY/10);
+  // }
+  //delay(INCREMENT_TIME);
   esc.writeMicroseconds(1000);
 }
 
@@ -374,7 +395,7 @@ void setup() {
   Wire.begin();
   lcd.setCursor(0, 0);
   lcd.print("Loading ..");
-
+  
   //Initialize servo PWM and arm the ESC
   esc.attach(ESC_PIN); //set esc to pin
   esc.writeMicroseconds(MIN_THROTTLE); //minimum throttle; arm the esc
@@ -454,6 +475,12 @@ void loop() {
     // Serial.println(INCREMENT_TIME);
     //if a keystroke has been entered from the keypad
     if(key){ //safeguard against user input while a motor is running
+      // if(key == 'C'){ //Open or close the banner
+      //   Wire.beginTransmission(9);
+      //   Wire.write('n');
+      //   Wire.endTransmission();
+      // }
+
       if(paused){ //inputs while the test is paused
         if(key == SEND_INPUT){
           //unpause data recording before the throttle ramp up if yes gradeint reading
