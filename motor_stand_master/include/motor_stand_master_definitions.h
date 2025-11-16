@@ -19,7 +19,7 @@ const String parameter_names[] = {"TEST #:", "MAX THROTTLE (%):", "INCREMENT (%)
 String parameter_values[PARAMETER_NUM];
 int parameter_index;
 
-bool taring;
+bool tared;
 bool sending; 
 bool choosing;
 bool initializing;
