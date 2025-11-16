@@ -94,5 +94,6 @@ bool zero_analog_sensors;
 bool use_prev_calibration;
 bool paused;
 bool toggle_banner;
+bool set_zero_point;
 
 ///////////////////////////////////////////////////////////////////////////////////////

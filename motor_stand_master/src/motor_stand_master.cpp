@@ -450,6 +450,19 @@ void loop() {
           lcd_home();
         }
         else if(key == 'B'){ //do the taring process
+          Wire.beginTransmission(9);
+          Wire.write('z');
+          Wire.endTransmission();
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("ZEROING...");
+          while(1){
+            Wire.requestFrom(9, 1);
+            if(Wire.read() == 1){
+              break;
+            }
+            delay(100);
+          }
           tare_index = 0;
           sending = false;
           choosing = false;
@@ -469,10 +482,6 @@ void loop() {
       end_testing();
     }
 
-    // Serial.println(cycle_length);
-    // Serial.print(parameter_values[4].toInt() * 1000);
-    // Serial.print(" | ");
-    // Serial.println(INCREMENT_TIME);
     //if a keystroke has been entered from the keypad
     if(key){ //safeguard against user input while a motor is running
       // if(key == 'C'){ //Open or close the banner

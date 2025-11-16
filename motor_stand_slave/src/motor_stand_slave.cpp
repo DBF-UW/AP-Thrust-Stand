@@ -47,6 +47,9 @@ void receiveEvent(int bytes){
   else if(type == 'n'){
     toggle_banner = true;
   }
+  else if(type == 'z'){
+    set_zero_point = true;
+  }
 }
 
 void requestEvent(){
@@ -109,15 +112,15 @@ void calibrate_hx711(HX711_ADC& load_cell, float known, int address){
 }
 
 // Initializes Load Cell
-void init_LoadCell () {
+void init_LoadCell (bool zero) {
   Serial.println(F("Initializing the HX711 . . ."));
 
   TorqueSensor.begin();
   ThrustSensor.begin();
   
-  boolean _tare = true; //set this to false if you don't want tare to be performed in the next step
-  TorqueSensor.start(2000, _tare); //tare for 2 seconds
-  ThrustSensor.start(2000, _tare);
+  //if using previous calibration (is true), then DON'T set the zero point
+  TorqueSensor.start(2000, zero); //tare for 2 seconds
+  ThrustSensor.start(2000, zero);
 
   if (TorqueSensor.getTareTimeoutFlag() || TorqueSensor.getSignalTimeoutFlag()) {
     Serial.println(F("Torque Sensor Timeout, check MCU>HX711 wiring and pin designations"));
@@ -160,6 +163,7 @@ void setup(){
   marker_sent = false;
   zero_torque = false;
   zero_thrust = false;
+  set_zero_point = false;
   paused = false;
   toggle_banner = false;
   banner_status = 0;
@@ -183,7 +187,7 @@ void setup(){
   Serial.print(F("Free RAM (in bytes): "));
   Serial.println(free_memory());
 
-  init_LoadCell(); //initialze the load cell
+  init_LoadCell(false); //initialze the load cell WITHOUT SETTING ZERO POINT
 
   //Initialize SD card; If no file is attached or something else goes wrong, 
   //the code put itself in an infinite loop
@@ -234,12 +238,26 @@ void loop(){
     use_prev_calibration = false;
   }
 
+  if(set_zero_point){
+    ready = false;
+    init_LoadCell(true);
+    set_zero_point = false;
+    ready = true;
+  }
+
   if(zero_torque){
     ready = false;
     KNOWN_TORQUE = signal.toInt();
     Serial.println(F("Calibrating torque sensor"));
     calibrate_hx711(TorqueSensor, KNOWN_TORQUE, 0);
     Serial.println(F("Done calibrating torque sensor"));
+    
+    float torque_calibration_factor;
+    EEPROM.get(0, torque_calibration_factor);
+    TorqueSensor.setCalFactor(torque_calibration_factor);
+    Serial.print(F("Torque: "));
+    Serial.println(String(torque_calibration_factor));
+
     zero_torque = false;
     ready = true;
   }
@@ -251,6 +269,12 @@ void loop(){
     Serial.println(F("Calibrating thrust sensor"));
     calibrate_hx711(ThrustSensor, KNOWN_THRUST, 10);
     Serial.println(F("Done Calibrating thrust sensor"));
+
+    float thrust_calibration_factor;
+    EEPROM.get(10, thrust_calibration_factor);
+    ThrustSensor.setCalFactor(thrust_calibration_factor);
+    Serial.print(F("Thrust: "));
+    Serial.println(String(thrust_calibration_factor));
 
     zero_thrust = false;
     ready = true;
