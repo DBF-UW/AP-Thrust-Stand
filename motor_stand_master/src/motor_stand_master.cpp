@@ -414,20 +414,21 @@ void setup() {
   lcd.setCursor(0, 0);
   lcd.print("Loading .....");
 
+  lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("USE PREVIOUS TARE?");
-  lcd.setCursor(0, 3);
-  lcd.print("YES: A | NO: B");
-  choosing = true;
-  tared = false;
+  lcd.print("INIT LOAD CELLS");
+  lcd.setCursor(0, 1);
+  lcd.print("PRESS A");
+  initializing = true;
 
   Serial.println("READY");
+  tared = false;
 }
 
 void loop() {
   char key = keypad.getKey();
   digitalWrite(STATUS_LED_PIN, HIGH);
-
+  
   if(!tared){
     if(key){
       if(!choosing){
@@ -437,6 +438,19 @@ void loop() {
         else{ //the user is going to send the tare values to the other arduino to calibrate
           send_tare_values(key);
         }
+      }
+      else if(initializing){
+        if(key == 'A'){
+          Wire.beginTransmission(9);
+          Wire.write('z');
+          Wire.endTransmission();
+        }
+        lcd.setCursor(0, 0);
+        lcd.print("USE PREVIOUS TARE?");
+        lcd.setCursor(0, 3);
+        lcd.print("YES: A | NO: B");
+        choosing = true;
+        initializing = false;
       }
       else{
         if(key == 'A'){ //skip the whole tare part

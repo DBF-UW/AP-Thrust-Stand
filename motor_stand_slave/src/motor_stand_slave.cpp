@@ -47,6 +47,9 @@ void receiveEvent(int bytes){
   else if(type == 'n'){
     toggle_banner = true;
   }
+  else if(type == 'z'){
+    set_zero_point = true;
+  }
 }
 
 void requestEvent(){
@@ -109,7 +112,7 @@ void calibrate_hx711(HX711_ADC& load_cell, float known, int address){
 }
 
 // Initializes Load Cell
-void init_LoadCell () {
+void init_LoadCell (bool _tare) {
   Serial.println(F("Initializing the HX711 . . ."));
 
   TorqueSensor.begin();
@@ -183,7 +186,7 @@ void setup(){
   Serial.print(F("Free RAM (in bytes): "));
   Serial.println(free_memory());
 
-  init_LoadCell(); //initialze the load cell
+  init_LoadCell(false); //initialze the load cell
 
   //Initialize SD card; If no file is attached or something else goes wrong, 
   //the code put itself in an infinite loop
@@ -254,6 +257,13 @@ void loop(){
 
     zero_thrust = false;
     ready = true;
+  }
+
+  if(set_zero_point){
+      ready = false;
+      init_LoadCell(true); //initialze the load cell with zero-ing
+      set_zero_point = false;
+      ready = true;
   }
 
   if(zero_analog_sensors){
