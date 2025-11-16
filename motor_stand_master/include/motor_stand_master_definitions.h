@@ -86,6 +86,8 @@ bool paused = false;
 volatile bool done_throttling;
 bool throttling_up;
 
+bool banner_status;
+
 unsigned long prev_interval_timestamp;
 
 ////////////////////////////////////////////////////////////////////////////////////////

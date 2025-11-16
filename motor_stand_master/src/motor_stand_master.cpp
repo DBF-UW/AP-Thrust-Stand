@@ -399,6 +399,7 @@ void setup() {
   //Initialize servo PWM and arm the ESC
   esc.attach(ESC_PIN); //set esc to pin
   esc.writeMicroseconds(MIN_THROTTLE); //minimum throttle; arm the esc
+  banner_status = 0;
 
   lcd.setCursor(0, 0);
   lcd.print("Loading ...");
@@ -489,11 +490,16 @@ void loop() {
     // Serial.println(INCREMENT_TIME);
     //if a keystroke has been entered from the keypad
     if(key){ //safeguard against user input while a motor is running
-      // if(key == 'C'){ //Open or close the banner
-      //   Wire.beginTransmission(9);
-      //   Wire.write('n');
-      //   Wire.endTransmission();
-      // }
+      if(key == 'C'){ //Open or close the banner
+        if(banner_status == 0){ //0 = close, 1 = open
+          esc.writeMicroseconds(2000);
+          banner_status = 1;
+        }
+        else{
+          esc.writeMicroseconds(1000);
+          banner_status = 0;
+        }
+      }
 
       if(paused){ //inputs while the test is paused
         if(key == SEND_INPUT){
