@@ -107,27 +107,6 @@ void throttle_ramp_up(int start, int next_cycle_length){
 }
 
 void throttle_down(){
-  // if(!read_gradient){
-  //   Wire.beginTransmission(9);
-  //   Wire.write('w');
-  //   Wire.endTransmission();
-  // }
-  // for(int i = cycle_length; i >= MIN_THROTTLE; i--){
-  //   esc.writeMicroseconds(i);
-  //   int throttle = map(i, ESC_MIN, ESC_MAX, 0, 100);
-  //   if(throttle == 99){
-  //     lcd.setCursor(11, 3);
-  //     lcd.print(" ");
-  //   }
-  //   if(throttle == 9){
-  //     lcd.setCursor(10, 3);
-  //     lcd.print(" ");
-  //   }
-  //   lcd.setCursor(0, 3);
-  //   lcd.print("THROTTLE:" + String(throttle));
-  //   delay(THROTTLE_UP_DELAY/10);
-  // }
-  //delay(INCREMENT_TIME);
   esc.writeMicroseconds(1000);
 }
 
@@ -306,7 +285,7 @@ void tare_analog(){
     delay(100);
   }
   lcd_home();
-  tared = true;
+  taring = false;
   sending = false;
 }
 
@@ -346,7 +325,8 @@ void send_tare_values(char key){
   }
   else if(tare_index == 2 && key == SKIP_TARE){ //for skipping during the analog part (since it goes straight to sending)
       lcd_home();
-      tared = true;
+      choose_tare_option = false;
+      taring = false;
       sending = false;
   }
   else if(key == SEND_INPUT){ //the button to zero the values
@@ -414,21 +394,77 @@ void setup() {
   lcd.setCursor(0, 0);
   lcd.print("Loading .....");
 
-  lcd.setCursor(0, 0);
-  lcd.print("USE PREVIOUS TARE?");
-  lcd.setCursor(0, 3);
-  lcd.print("YES: A | NO: B");
-  choosing = true;
-  tared = false;
-
   Serial.println("READY");
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("PRESS A TO INIT LOAD CELLS");
+  initializing = true;
+  choose_tare_option = false;
 }
 
 void loop() {
   char key = keypad.getKey();
   digitalWrite(STATUS_LED_PIN, HIGH);
 
-  if(!tared){
+  if(initializing){
+    if(key && key == 'A'){
+      Wire.beginTransmission(9);
+      Wire.write('z');
+      Wire.endTransmission();
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("ZEROING...");
+      while(1){
+        Wire.requestFrom(9, 1);
+        if(Wire.read() == 1){
+          break;
+        }
+        delay(100);
+      }
+      initializing = false;
+      choose_tare_option = true;
+    }
+  }
+
+  if(choose_tare_option){
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("USE PREVIOUS TARE?");
+    lcd.setCursor(0, 3);
+    lcd.print("YES: A | NO: B");
+    if(key){
+      if(key == 'A'){ //skip the whole tare part
+        Wire.beginTransmission(9);
+        Wire.write('p');
+        Wire.endTransmission();
+        delay(100);
+        choosing = false;
+        taring = false;
+        parameter_index = 0;
+        choose_tare_option = false;
+        lcd_home();
+      }
+      else if(key == 'B'){ //do the taring process
+        tare_index = 0;
+        sending = false;
+        choosing = false;
+        choose_tare_option = false;
+        taring = true;
+        tare_ui();
+      }
+    }
+  }
+  
+  if(taring){
+    if(!choosing){
+      if(!sending){ //the user is inputting in calibration values but NOT sending it yet
+        not_sending_tare_values(key);
+      }
+      else{ //the user is going to send the tare values to the other arduino to calibrate
+        send_tare_values(key);
+      }
+    }
     if(key){
       if(!choosing){
         if(!sending){ //the user is inputting in calibration values but NOT sending it yet
@@ -436,37 +472,6 @@ void loop() {
         }
         else{ //the user is going to send the tare values to the other arduino to calibrate
           send_tare_values(key);
-        }
-      }
-      else{
-        if(key == 'A'){ //skip the whole tare part
-          Wire.beginTransmission(9);
-          Wire.write('p');
-          Wire.endTransmission();
-          delay(100);
-          choosing = false;
-          tared = true;
-          parameter_index = 0;
-          lcd_home();
-        }
-        else if(key == 'B'){ //do the taring process
-          Wire.beginTransmission(9);
-          Wire.write('z');
-          Wire.endTransmission();
-          lcd.clear();
-          lcd.setCursor(0, 0);
-          lcd.print("ZEROING...");
-          while(1){
-            Wire.requestFrom(9, 1);
-            if(Wire.read() == 1){
-              break;
-            }
-            delay(100);
-          }
-          tare_index = 0;
-          sending = false;
-          choosing = false;
-          tare_ui();
         }
       }
     }

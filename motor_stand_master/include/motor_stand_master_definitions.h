@@ -19,9 +19,11 @@ const String parameter_names[] = {"TEST #:", "MAX THROTTLE (%):", "INCREMENT (%)
 String parameter_values[PARAMETER_NUM];
 int parameter_index;
 
-bool tared;
+bool taring;
 bool sending; 
 bool choosing;
+bool initializing;
+bool choose_tare_option; 
 const int TARE_NUM = 2;
 const String tare_names[] = {"KNOWN TORQUE:", "KNOWN THRUST:"};
 String tare_values[TARE_NUM];

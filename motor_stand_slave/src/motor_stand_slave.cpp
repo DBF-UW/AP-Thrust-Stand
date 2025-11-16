@@ -119,6 +119,9 @@ void init_LoadCell (bool zero) {
   ThrustSensor.begin();
   
   //if using previous calibration (is true), then DON'T set the zero point
+  if(zero){
+    Serial.println("ZEROING...");
+  }
   TorqueSensor.start(2000, zero); //tare for 2 seconds
   ThrustSensor.start(2000, zero);
 
@@ -187,8 +190,6 @@ void setup(){
   Serial.print(F("Free RAM (in bytes): "));
   Serial.println(free_memory());
 
-  init_LoadCell(false); //initialze the load cell WITHOUT SETTING ZERO POINT
-
   //Initialize SD card; If no file is attached or something else goes wrong, 
   //the code put itself in an infinite loop
   Serial.print("Initializing the SD card");
@@ -198,6 +199,14 @@ void setup(){
   }
   ready = true;
   digitalWrite(STATUS_LED_PIN, HIGH);
+
+  delay(100);
+  ready = false;
+  if(set_zero_point){
+    init_LoadCell(true); //initialze the load cell and set the zero point
+  }
+  set_zero_point = false;
+  ready = true;
 }
 
 void loop(){
@@ -236,13 +245,6 @@ void loop(){
 
     Serial.println(F("Done retrieving calibration factors"));
     use_prev_calibration = false;
-  }
-
-  if(set_zero_point){
-    ready = false;
-    init_LoadCell(true);
-    set_zero_point = false;
-    ready = true;
   }
 
   if(zero_torque){
