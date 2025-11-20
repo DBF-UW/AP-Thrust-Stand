@@ -16,7 +16,7 @@ bool INTERRUPTED;
 int page_index;
 int page_type; //0 = Choice, 1 = Taring, 2 = Parameter
 const int STATUS_LED_PIN = 13;
-
+bool skip_tare;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //KEYBOARD INITIALIZATION (4x4 Membrane keypad)
@@ -53,30 +53,16 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 Servo esc; 
 
 const int MIN_THROTTLE = 1000;
-int MAX_THROTTLE;
 
 const int ESC_MIN = 1000;
 const int ESC_MAX = 2000;
 
 const int ESC_PIN = 3;
-long INCREMENT_TIME;
 const int THROTTLE_UP_DELAY = 10;
 
-int throttleIncrement;
-int pwm_increment;
-int cycle_length;
-int RAMP_UP_DELAY = 1500;
-
-bool start_motor; 
-bool read_ramp_up_data;
-bool set_piecewise;
-bool paused = false;
-volatile bool done_throttling;
-bool throttling_up;
-
-bool banner_status;
-
-unsigned long prev_interval_timestamp;
+bool test_running; 
+bool is_piecewise;
+bool record_throttle_up;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //MANUAL OVERRIDE DEFINITIONS

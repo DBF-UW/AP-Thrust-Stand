@@ -51,8 +51,6 @@ private:
     lcd.setCursor(0, 3);
     lcd.print("THROTTLE:" + String(map(current_throttle_pwm, ESC_MIN, ESC_MAX, 0, 100)));
     Serial.println("Starting: Test Num: " + file_name + " | Increment: " + String(increment_pwm));
-    start_motor = true;
-    transmit("b", "");
   }
 
   void pause_screen(){
@@ -99,6 +97,10 @@ public:
     esc.writeMicroseconds(1000);
   }
 
+  void start_testing(){
+    transmit("b", "");
+  }
+
   void end_testing(){
     transmit("e", "");
     setup();
@@ -120,7 +122,7 @@ public:
   void resume(){
     if(piecewise){
       transmit("w", "");
-      int next_cycle_length = min(current_throttle_pwm + increment_pwm, MAX_THROTTLE);
+      int next_cycle_length = min(current_throttle_pwm + increment_pwm, max_throttle_pwm);
       throttle_up(next_cycle_length);
       testing_screen();
     }
@@ -185,9 +187,10 @@ class TaringPage{
 private:
   String tare_name;
   String tare_value;
+  int status; //0 = inputting, 1 = sending, 2 = taring
 
-  void update_taring_ui(String status) { //This method updates the taring UI
-    if(status == "Inputting"){
+  void update_taring_ui() { //This method updates the taring UI
+    if(status == 0){ //inputting
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print(tare_name + ": " + tare_value);
@@ -200,8 +203,8 @@ private:
       else if(tare_name == "Thrust"){
         lcd.print("Units: mN");
       }
-    }
-    else if(status == "Sending"){
+    } 
+    else if(status == 1){ //sending
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("PRESS " + String(SEND_INPUT) + " TO TARE");
@@ -213,7 +216,7 @@ private:
       lcd.print("BACK: " + String(BACK_BUTTON));
       lcd.setCursor(0, 1);
     }
-    else if(status == "Taring"){
+    else if(status = 2){ //taring
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("CALIBRATING...");
@@ -249,12 +252,14 @@ public:
   }
 
   void confirmation_page(){
-    update_taring_ui("Sending");
+    status = 1;
+    update_taring_ui();
   }
 
   void set_up_page() { //resets tare value for when the user backs up a page
     tare_value = "";
-    update_taring_ui("inputting");
+    status = 0;
+    update_taring_ui();
   }
 
   void save_tare_value() { //This method tells the slave to save the tare value to the EEPROM or for analog, tare
@@ -267,7 +272,8 @@ public:
     else if(tare_name == "Analog"){
       transmit("a", "");
     }
-    update_taring_ui("Taring");
+    status = 2;
+    update_taring_ui();
     while(1){
       Wire.requestFrom(9, 1);
       if(Wire.read() == 1){
@@ -275,6 +281,10 @@ public:
       }
       delay(100);
     }
+  }
+
+  int get_status(){
+    return status;
   }
 
   String page_type() {
@@ -430,34 +440,33 @@ public:
   }
 }; 
 
-
-
 void interrupt(){
   INTERRUPTED = true;
 }
 
 void skip_taring(){
-  Wire.beginTransmission(9);
-  Wire.write('p');
-  Wire.endTransmission();
+  transmit("p", "");
+  skip_tare = true;
 }
 
 void tare(){
-
+  skip_tare = false;
 }
 
 void run_piecewise(){
-  set_piecewise = false;
+  is_piecewise = true;
 }
 
 void not_piecewise(){
-  set_piecewise = true;
+  is_piecewise = false;
 }
 
 void record_ramp_up(){
+  record_throttle_up = true;
 }
 
 void no_record_ramp_up(){
+  record_throttle_up = false;
 }
 
 //DEFINE PAGES
@@ -481,8 +490,6 @@ ParameterPage* parameter_pages[6] = {&file_name, &max_throttle, &increment, &mar
 
 Test test;
 void setup() {
-  page_index = 0;
-  page_type = 0;
   pinMode(INTERRUPT_PIN, INPUT_PULLUP); //set default switch position to HIGH
   pinMode(STATUS_LED_PIN, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), interrupt, FALLING); //when switch is pressed down
@@ -504,7 +511,6 @@ void setup() {
   //Initialize servo PWM and arm the ESC
   esc.attach(ESC_PIN); //set esc to pin
   esc.writeMicroseconds(MIN_THROTTLE); //minimum throttle; arm the esc
-  banner_status = 0;
 
   lcd.setCursor(0, 0);
   lcd.print("Loading ...");
@@ -525,42 +531,125 @@ void setup() {
   lcd.print("Loading .....");
 
   Serial.println("READY");
+
+  page_index = 0;
+  page_type = 0;
+  choice_pages[page_type] -> set_up_page();
 }
 
 void loop() {
   char key = keypad.getKey();
   digitalWrite(STATUS_LED_PIN, HIGH);
   if(key){
-    switch(page_type){
-      case 0: //Choice
-
-      case 1: //Taring
-
-      case 2: //Parameters
-        ParameterPage* curr_page = parameter_pages[page_index];
-        if(key == ENTER_INPUT){
-          if(page_index < 5){
-            page_index++;
-            parameter_pages[page_index] -> set_up_page();
-          }
+    if(page_type == 0){ //CHOICE
+      ChoicePage* curr_page = choice_pages[page_index];
+      if(key == 'A'){
+        curr_page -> runChoiceA();
+        page_index++;
+        if(page_index == 3 && !skip_tare){
+          page_index = 0;
+          page_type = 1;
+          taring_pages[page_index] -> set_up_page();
         }
-        else if(key == SEND_INPUT){
-          if(page_index == 5){
-            test = curr_page -> send_parameters();
-          }
+        else if(page_index == 3 && skip_tare){
+          page_index = 0;
+          page_type = 2;
+          parameter_pages[page_index] -> set_up_page();
         }
-        else if(key == BACK_BUTTON){
-          if(page_index > 0){
-            page_index--;
-            parameter_pages[page_index] -> set_up_page();
-          }
+        else{
+          choice_pages[page_index] -> set_up_page();
         }
-        else if(key == DELETE){
-          curr_page -> delete_digit();
+      }
+      else if(key == 'B'){
+        curr_page -> runChoiceB();
+        page_index++;
+        if(page_index == 3 && !skip_tare){
+          page_index = 0;
+          page_type = 1;
+          taring_pages[page_index] -> set_up_page();
         }
-        else if(key > '0' && key < '9'){
-          curr_page -> update_parameter_value(key);
+        else if(page_index == 3 && skip_tare){
+          page_index = 0;
+          page_type = 2;
+          parameter_pages[page_index] -> set_up_page();
         }
+        else{
+          choice_pages[page_index] -> set_up_page();
+        }
+      }
+      else if(key == BACK_BUTTON){
+        if(page_index > 0){
+          page_index--;
+          choice_pages[page_index] -> set_up_page();
+        }
+      }
+    }
+    else if(page_type == 1){ //TARING
+      TaringPage* curr_page = taring_pages[page_index];
+      if(key == ENTER_INPUT && curr_page -> get_status() == 0){ //user clicks next
+        curr_page -> confirmation_page(); 
+      }
+      else if(key == DELETE && curr_page -> get_status() == 0){
+        curr_page -> delete_digit();
+      }
+      else if(key == BACK_BUTTON && curr_page -> get_status() == 1){
+        curr_page -> set_up_page();
+      }
+      else if(key == BACK_BUTTON && curr_page -> get_status() == 0){
+        if(page_index > 0){
+          page_index--;
+          parameter_pages[page_index] -> set_up_page();
+        }
+      }
+      else if(key == SKIP_TARE && (curr_page -> get_status() == 0 || curr_page -> get_status() == 1)){ //TODO: Add better logic for skipping (if skip, get the individual value from the EEPROM and set it)
+        page_index++;
+        if(page_index == 3){ //if done taring everything and sent, go to parameter pages
+          page_index = 0;
+          page_type = 2;
+          parameter_pages[page_index] -> set_up_page();
+        }
+        else{
+          taring_pages[page_index] -> set_up_page();
+        }
+      }
+      else if(key == SEND_INPUT && curr_page -> get_status() == 1){
+        curr_page -> save_tare_value();
+        page_index++;
+        if(page_index == 3){ //if done taring everything and sent, go to parameter pages
+          page_index = 0;
+          page_type = 2;
+          parameter_pages[page_index] -> set_up_page();
+        }
+        else{
+          taring_pages[page_index] -> set_up_page();
+        }
+      }
+    }
+    else if(page_type == 2){ //PARAMETERS
+      ParameterPage* curr_page = parameter_pages[page_index];
+      if(key == ENTER_INPUT){
+        if(page_index < 5){
+          page_index++;
+          parameter_pages[page_index] -> set_up_page();
+        }
+      }
+      else if(key == SEND_INPUT){
+        if(page_index == 5){
+          test = curr_page -> send_parameters();
+        }
+      }
+      else if(key == BACK_BUTTON){
+        if(page_index > 0){
+          page_index--;
+          parameter_pages[page_index] -> set_up_page();
+        }
+      }
+      else if(key == DELETE){
+        curr_page -> delete_digit();
+      }
+      else if(key > '0' && key < '9'){
+        curr_page -> update_parameter_value(key);
+      }
     }
   }
 }
