@@ -48,6 +48,14 @@ private:
     lcd.setCursor(0, 3);
   }
 
+  void pause_data_reading(){
+    transmit("w", "");
+  }
+
+  void resume_data_reading(){
+    transmit("g", "");
+  }
+
 public:
   Test(String file_name, int max_throttle_pwm, int increment_pwm, long increment_length, bool piecewise, bool read_ramp_up_data)
   : file_name(file_name), 
@@ -75,10 +83,6 @@ public:
     test_running(false), 
     paused(false)
   {}
-
-  void set_read_ramp_up_data() {
-    read_ramp_up_data = true;
-  }
 
   void throttle_down(){
     esc.writeMicroseconds(1000);
@@ -131,18 +135,6 @@ public:
     }
   }
 
-  void pause_data_reading(){
-    transmit("w", "");
-  }
-
-  void resume_data_reading(){
-    transmit("g", "");
-  }
-
-  String page_type(){
-    return "Test";
-  }
-
   void throttle_up(int next_throttle){
     //pause data reading if necessary
     if(!read_ramp_up_data){
@@ -192,6 +184,10 @@ public:
 
   bool increment_done(){ //check if good to throttle up again (increment is complete)
     return millis() >= prev_ramp_up_finish_timestamp + increment_length;
+  }
+
+  String page_type(){
+    return "Test";
   }
 }; 
 
