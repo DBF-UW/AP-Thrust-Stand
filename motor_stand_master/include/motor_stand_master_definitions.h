@@ -60,9 +60,8 @@ const int ESC_MAX = 2000;
 const int ESC_PIN = 3;
 const int THROTTLE_UP_DELAY = 10;
 
-bool test_running; 
-bool is_piecewise;
-bool record_throttle_up;
+bool IS_PIECEWISE;
+bool RECORD_THROTTLE_UP;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //MANUAL OVERRIDE DEFINITIONS

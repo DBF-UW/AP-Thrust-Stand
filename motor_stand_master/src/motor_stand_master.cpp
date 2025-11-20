@@ -23,23 +23,11 @@ private:
   long current_throttle_pwm;
   long prev_ramp_up_finish_timestamp;
   bool piecewise;
+  bool paused;
   bool read_ramp_up_data;
   bool done_throttling;
+  bool test_running;
   int THROTTLE_UP_DELAY = 10;
-
-  void transmit(String type, String value){
-    String signal;
-    if(value == ""){
-      signal = type;
-    }
-    else{
-      signal = type + value;
-    }
-    int length = signal.length();
-    Wire.beginTransmission(9);
-    Wire.write(signal.c_str(), length);
-    Wire.endTransmission();
-  }
 
   void testing_screen(){
     lcd.clear();
@@ -61,16 +49,17 @@ private:
   }
 
 public:
-  Test(String file_name, int max_throttle_pwm, int increment_pwm, long increment_length)
-      : file_name(file_name), 
-      max_throttle_pwm(max_throttle_pwm), 
-      increment_pwm(increment_pwm),
-      increment_length(increment_length)
-  {
-    piecewise = false;
-    read_ramp_up_data = false;
-    done_throttling = false;
-  }
+  Test(String file_name, int max_throttle_pwm, int increment_pwm, long increment_length, bool piecewise, bool read_ramp_up_data)
+  : file_name(file_name), 
+    max_throttle_pwm(max_throttle_pwm), 
+    increment_pwm(increment_pwm),
+    increment_length(increment_length), 
+    piecewise(piecewise), 
+    read_ramp_up_data(read_ramp_up_data),
+    done_throttling(false), 
+    test_running(false), 
+    paused(false)
+  {}
 
   Test() 
   : file_name(""),
@@ -82,12 +71,10 @@ public:
     prev_ramp_up_finish_timestamp(0),
     piecewise(false),
     read_ramp_up_data(false),
-    done_throttling(false)
+    done_throttling(false), 
+    test_running(false), 
+    paused(false)
   {}
-
-  void set_piecewise() {
-    piecewise = true;
-  }
 
   void set_read_ramp_up_data() {
     read_ramp_up_data = true;
@@ -98,12 +85,26 @@ public:
   }
 
   void start_testing(){
+    test_running = true;
     transmit("b", "");
+    prev_ramp_up_finish_timestamp = millis();
   }
 
   void end_testing(){
     transmit("e", "");
     setup();
+  }
+
+  bool is_running(){
+    return test_running;
+  }
+
+  bool is_piecewise(){
+    return piecewise;
+  }
+
+  bool is_paused(){
+    return paused;
   }
 
   void pause(){
@@ -116,6 +117,7 @@ public:
       throttle_down();
 
       pause_screen();
+      paused = true;
     }
   }
 
@@ -123,8 +125,9 @@ public:
     if(piecewise){
       transmit("w", "");
       int next_cycle_length = min(current_throttle_pwm + increment_pwm, max_throttle_pwm);
-      throttle_up(next_cycle_length);
       testing_screen();
+      paused = false;
+      throttle_up(next_cycle_length);
     }
   }
 
@@ -141,10 +144,12 @@ public:
   }
 
   void throttle_up(int next_throttle){
+    //pause data reading if necessary
     if(!read_ramp_up_data){
       pause_data_reading();
     }
 
+    //get the next increment in pwm cycles
     int next_cycle_length;
     if(next_throttle == -1){
       next_cycle_length = min(current_throttle_pwm + increment_pwm, max_throttle_pwm);
@@ -153,6 +158,7 @@ public:
       next_cycle_length = next_throttle;
     }
 
+    //loop up to the next increment value
     int starting_throttle = current_throttle_pwm;
     for(current_throttle_pwm = starting_throttle; current_throttle_pwm <= next_cycle_length; current_throttle_pwm++){
       if(INTERRUPTED){
@@ -171,14 +177,20 @@ public:
       delay(THROTTLE_UP_DELAY);
     }
     current_throttle_pwm--;
+    if(current_throttle_pwm == max_throttle_pwm){ //if we reached the end of throttling
+      end_testing();
+    }
 
+    //resume data reading if necessary
     if(!read_ramp_up_data){
       resume_data_reading();
     }
+
+    //record when the ramp up completed so the machine can calculate when the next ramp up session should take place
     prev_ramp_up_finish_timestamp = millis(); //update the timestamp of when the last ramp up sequence finished
   }
 
-  bool increment_done(){
+  bool increment_done(){ //check if good to throttle up again (increment is complete)
     return millis() >= prev_ramp_up_finish_timestamp + increment_length;
   }
 }; 
@@ -216,7 +228,7 @@ private:
       lcd.print("BACK: " + String(BACK_BUTTON));
       lcd.setCursor(0, 1);
     }
-    else if(status = 2){ //taring
+    else if(status == 2){ //taring
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("CALIBRATING...");
@@ -393,8 +405,9 @@ public:
       increment_length = (long) increment_length * 1000;
       Serial.println("TEST PARAMETERS CONFIRMED!");
 
-      return Test(file_name, max_throttle_pwm, increment_pwm, increment_length);
+      return Test(file_name, max_throttle_pwm, increment_pwm, increment_length, IS_PIECEWISE, RECORD_THROTTLE_UP);
     }
+    return Test();
   }
 
   String page_type() {
@@ -453,20 +466,22 @@ void tare(){
   skip_tare = false;
 }
 
+//set boolean flags for piecewise
 void run_piecewise(){
-  is_piecewise = true;
+  IS_PIECEWISE = true;
 }
 
 void not_piecewise(){
-  is_piecewise = false;
+  IS_PIECEWISE = false;
 }
 
+//set boolean flags for throttle up 
 void record_ramp_up(){
-  record_throttle_up = true;
+  RECORD_THROTTLE_UP = true; 
 }
 
 void no_record_ramp_up(){
-  record_throttle_up = false;
+  RECORD_THROTTLE_UP = false;
 }
 
 //DEFINE PAGES
@@ -538,9 +553,10 @@ void setup() {
 }
 
 void loop() {
+  //KEYSTROKE LOGIC (IF USER INPUTS) FOR BEFORE TEST
   char key = keypad.getKey();
   digitalWrite(STATUS_LED_PIN, HIGH);
-  if(key){
+  if(key && !test.is_running()){ 
     if(page_type == 0){ //CHOICE
       ChoicePage* curr_page = choice_pages[page_index];
       if(key == 'A'){
@@ -595,6 +611,9 @@ void loop() {
       else if(key == BACK_BUTTON && curr_page -> get_status() == 1){
         curr_page -> set_up_page();
       }
+      else if(key >= '0' && key <= '9' && curr_page -> get_status() == 0){
+        curr_page -> update_tare_value(key);
+      }
       else if(key == BACK_BUTTON && curr_page -> get_status() == 0){
         if(page_index > 0){
           page_index--;
@@ -636,6 +655,7 @@ void loop() {
       else if(key == SEND_INPUT){
         if(page_index == 5){
           test = curr_page -> send_parameters();
+          test.start_testing();
         }
       }
       else if(key == BACK_BUTTON){
@@ -647,9 +667,33 @@ void loop() {
       else if(key == DELETE){
         curr_page -> delete_digit();
       }
-      else if(key > '0' && key < '9'){
+      else if(key >= '0' && key <= '9'){
         curr_page -> update_parameter_value(key);
       }
+    }
+  }
+
+  //TEST LOGIC (MOTOR THROTTLE UP, TEST FLOW, ETC.)
+  if(test.is_running()){
+    if(INTERRUPTED){
+      test.end_testing();
+    }
+    if(test.is_piecewise()){ //PIECEWISE
+      if(test.is_paused()){ //WHEN TEST IS PAUSED
+        if(key && key == SEND_INPUT){
+          test.resume();
+        }
+      }
+      else{ //PAUSE WHEN INCREMENT DONE
+        if(test.increment_done()){
+          test.pause();
+        }
+      }
+    }
+    else{ //NOT PIECEWISE
+      if(test.increment_done()){
+        test.throttle_up(-1);
+      } 
     }
   }
 }
