@@ -233,12 +233,12 @@ private:
 
 public:
   TaringPage(String tare_name) :
-    tare_name(tare_name) { //CONSTRUCTOR
-    tare_value = "";
-  }
+    tare_name(tare_name), 
+    tare_value("") 
+  {}
 
   void update_tare_value(int inputted_digit){ //This method adds a digit to the current known tare
-    if(tare_name != "Analog"){
+    if(tare_name != "Analog" && tare_value.length() < 9){
       tare_value += inputted_digit;
       lcd.setCursor(0, 0);
       lcd.print(tare_name + ": " + tare_value);
@@ -246,12 +246,10 @@ public:
   }
 
   void delete_digit() { //This method deletes a digit from the current known tare
-    if(tare_name != "Analog"){
-      if(tare_value.length() != 0){
-        tare_value.remove(tare_value.length() - 1);
-        lcd.setCursor(0, 0);
-        lcd.print(tare_name + ": " + tare_value);
-      }
+    if(tare_name != "Analog" && tare_value.length() > 0){
+      tare_value.remove(tare_value.length() - 1);
+      lcd.setCursor(0, 0);
+      lcd.print(tare_name + ": " + tare_value);
     }
   }
 
@@ -341,19 +339,20 @@ private:
 
 public:
   ParameterPage(String parameter_name) : 
-    parameter_name(parameter_name)
-  { //CONSTRUCTOR
-    parameter_value = "";
-  }
+    parameter_name(parameter_name), 
+    parameter_value("")
+  {}
 
   void update_parameter_value(int inputted_digit) {
-    parameter_value += inputted_digit;
-    lcd.setCursor(0, 0);
-    lcd.print(parameter_name + ": " + parameter_value);
+    if(parameter_value.length() < 3){
+      parameter_value += inputted_digit;
+      lcd.setCursor(0, 0);
+      lcd.print(parameter_name + ": " + parameter_value);
+    }
   }
 
   void delete_digit() {
-    if(parameter_value.length() != 0){
+    if(parameter_value.length() > 0){
       parameter_value.remove(parameter_value.length() - 1);
       lcd.setCursor(0, 0);
       lcd.print(parameter_name + ": " + parameter_value);
