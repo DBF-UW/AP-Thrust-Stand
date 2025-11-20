@@ -28,6 +28,15 @@ void receiveEvent(int bytes){
   else if(type == 'a'){ //analog
     zero_analog_sensors = true;
   }
+  else if(type == 'o'){ //skip torque
+    skip_torque = true;
+  }
+  else if(type == 'u'){ //skip thrust
+    skip_thrust = true;
+  }
+  else if(type == 'l'){ //skip analog
+    skip_analog = true;
+  }
   else if(type == 'p'){ //previous
     use_prev_calibration = true;
   }
@@ -138,6 +147,36 @@ int free_memory() {
   return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int)__brkval);
 }
 
+void retrieve_torque_cal(){
+  float torque_calibration_factor;
+  EEPROM.get(0, torque_calibration_factor);
+  TorqueSensor.setCalFactor(torque_calibration_factor);
+  Serial.print(F("Torque: "));
+  Serial.println(String(torque_calibration_factor));
+}
+
+void retrieve_thrust_cal(){
+  float thrust_calibration_factor;
+  EEPROM.get(10, thrust_calibration_factor);
+  ThrustSensor.setCalFactor(thrust_calibration_factor);
+  Serial.print(F("Thrust: "));
+  Serial.println(String(thrust_calibration_factor));
+}
+
+void retrieve_analog_cal(){
+  EEPROM.get(20, zeroVoltage);
+  Serial.print(F("Airspeed: "));
+  Serial.println(String(zeroVoltage));
+
+  EEPROM.get(30, ZERO_CURRENT_VOLTAGE);
+  Serial.print(F("Current: "));
+  Serial.println(String(ZERO_CURRENT_VOLTAGE));
+
+  EEPROM.get(40, ZERO_VOLTAGE);
+  Serial.print(F("Voltage: "));
+  Serial.println(String(ZERO_VOLTAGE));
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //MAIN DRIVER CODE
 
@@ -205,31 +244,9 @@ void loop(){
 
   if(use_prev_calibration){
     Serial.println(F("Retrieving calibration factors"));
-
-    float torque_calibration_factor;
-    EEPROM.get(0, torque_calibration_factor);
-    TorqueSensor.setCalFactor(torque_calibration_factor);
-    Serial.print(F("Torque: "));
-    Serial.println(String(torque_calibration_factor));
-
-    float thrust_calibration_factor;
-    EEPROM.get(10, thrust_calibration_factor);
-    ThrustSensor.setCalFactor(thrust_calibration_factor);
-    Serial.print(F("Thrust: "));
-    Serial.println(String(thrust_calibration_factor));
-
-    EEPROM.get(20, zeroVoltage);
-    Serial.print(F("Airspeed: "));
-    Serial.println(String(zeroVoltage));
-
-    EEPROM.get(30, ZERO_CURRENT_VOLTAGE);
-    Serial.print(F("Current: "));
-    Serial.println(String(ZERO_CURRENT_VOLTAGE));
-
-    EEPROM.get(40, ZERO_VOLTAGE);
-    Serial.print(F("Voltage: "));
-    Serial.println(String(ZERO_VOLTAGE));
-
+    retrieve_torque_cal();
+    retrieve_thrust_cal();
+    retrieve_analog_cal();
     Serial.println(F("Done retrieving calibration factors"));
     use_prev_calibration = false;
   }
@@ -272,6 +289,21 @@ void loop(){
     
     zero_analog_sensors = false;
     ready = true;
+  }
+
+  if(skip_torque){
+    retrieve_torque_cal();
+    skip_torque = false;
+  }
+
+  if(skip_thrust){
+    retrieve_thrust_cal();
+    skip_thrust = false;
+  }
+
+  if(skip_analog){
+    retrieve_analog_cal();
+    skip_analog = false;
   }
 
   if(creating_new_file){ //create a new file

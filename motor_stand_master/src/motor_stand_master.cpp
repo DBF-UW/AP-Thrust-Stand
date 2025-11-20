@@ -259,6 +259,18 @@ public:
     return tare_value; 
   }
 
+  void skip_tare(){
+    if(tare_name == "Torque"){
+      transmit("o", "");
+    }
+    else if(tare_name == "Thrust"){
+      transmit("u", "");
+    }
+    else if(tare_name == "Analog"){
+      transmit("l", "");
+    }
+  }
+
   void confirmation_page(){
     status = 1;
     update_taring_ui();
@@ -617,6 +629,7 @@ void loop() {
         }
       }
       else if(key == SKIP_TARE && (curr_page -> get_status() == 0 || curr_page -> get_status() == 1)){ //TODO: Add better logic for skipping (if skip, get the individual value from the EEPROM and set it)
+        curr_page -> skip_tare();
         page_index++;
         if(page_index == 3){ //if done taring everything and sent, go to parameter pages
           page_index = 0;
