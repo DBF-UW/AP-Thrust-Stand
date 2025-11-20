@@ -23,10 +23,10 @@ private:
   long current_throttle_pwm;
   long prev_ramp_up_finish_timestamp;
   bool piecewise;
-  bool paused;
   bool read_ramp_up_data;
   bool done_throttling;
   bool test_running;
+  bool paused;
   int THROTTLE_UP_DELAY = 10;
 
   void testing_screen(){
