@@ -597,7 +597,7 @@ void setup() {
   Serial.println(F("READY"));
 
   INTERRUPTED = false;
-  Serial.println("Interupt Status:" + String(INTERRUPTED));
+  Serial.println("Interrupt Status:" + String(INTERRUPTED));
   page_index = 0;
   page_type = 0;
   choice_pages[page_type] -> set_up_page();
@@ -729,7 +729,7 @@ void loop() {
   //TEST LOGIC (MOTOR THROTTLE UP, TEST FLOW, ETC.)
   if(test.is_running()){
     if(INTERRUPTED){
-      Serial.println("INterrupted");
+      Serial.println("Interrupted");
       INTERRUPTED = false;
       test.end_testing();
     }
