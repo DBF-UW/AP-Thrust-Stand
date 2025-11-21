@@ -422,6 +422,12 @@ public:
   }
 }; 
 
+String ParameterPage::file_name = "";
+int ParameterPage::max_throttle = 0;
+int ParameterPage::increment = 0;
+String ParameterPage::RPM_markers = "";
+long ParameterPage::increment_length = 0;
+
 class ChoicePage {
 private:
   String prompt;
