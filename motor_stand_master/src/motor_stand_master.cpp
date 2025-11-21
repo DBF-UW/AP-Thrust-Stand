@@ -3,7 +3,7 @@
 
 void transmit(String type, String value){
   String signal;
-  if(value == ""){
+  if(value == F("")){
     signal = type;
   }
   else{
@@ -50,16 +50,16 @@ private:
   void pause_screen(){
     lcd.clear();
     lcd.setCursor(0, 1);
-    lcd.print("PRESS * TO RESUME");
+    lcd.print("PRESS " + String(SEND_INPUT) + " TO RESUME");
     lcd.setCursor(0, 3);
   }
 
   void pause_data_reading(){
-    transmit("w", "");
+    transmit(F("w"), "");
   }
 
   void resume_data_reading(){
-    transmit("g", "");
+    transmit(F("g"), "");
   }
 
 public:
@@ -125,11 +125,11 @@ public:
 
   void pause(){
     if(piecewise){
-      transmit("w", "");
+      transmit(F("w"), F(""));
 
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print("THROTTLING DOWN");
+      lcd.print(F("THROTTLING DOWN"));
       throttle_down();
 
       pause_screen();
@@ -139,7 +139,7 @@ public:
 
   void resume(){
     if(piecewise){
-      transmit("g", "");
+      transmit(F("g"), F(""));
       int next_cycle_length = min(current_throttle_pwm + increment_pwm, max_throttle_pwm);
       current_throttle_pwm = ESC_MIN;
       testing_screen();
@@ -211,7 +211,7 @@ public:
   }
 
   String page_type(){
-    return "Test";
+    return F("Test");
   }
 }; 
 
@@ -230,10 +230,10 @@ private:
       lcd.print("NEXT: " +  String(ENTER_INPUT) + "| SKIP: " + String(SKIP_TARE) + "    ");
       lcd.setCursor(0, 3);
       if(tare_name == F("Torque")){
-        lcd.print("UNITS: N.mm");
+        lcd.print(F("UNITS: N.mm"));
       }
       else if(tare_name == F("Thrust")){
-        lcd.print("Units: mN");
+        lcd.print(F("Units: mN"));
       }
     } 
     else if(status == 1){ //sending
@@ -242,7 +242,7 @@ private:
       lcd.print("PRESS " + String(SEND_INPUT) + " TO TARE");
       if(tare_name == F("Analog")){
         lcd.setCursor(0, 1);
-        lcd.print("ANALOG SENSORS");
+        lcd.print(F("ANALOG SENSORS"));
       }
       lcd.setCursor(0, 3);
       lcd.print("BACK: " + String(BACK_BUTTON));
@@ -251,7 +251,7 @@ private:
     else if(status == 2){ //taring
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print("CALIBRATING...");
+      lcd.print(F("CALIBRATING..."));
     }
   }
 
@@ -283,13 +283,13 @@ public:
 
   void skip_tare(){
     if(tare_name == F("Torque")){
-      transmit("o", "");
+      transmit(F("o"), F(""));
     }
     else if(tare_name == F("Thrust")){
-      transmit("u", "");
+      transmit(F("u"), F(""));
     }
     else if(tare_name == F("Analog")){
-      transmit("l", "");
+      transmit(F("l"), F(""));
     }
   }
 
@@ -299,20 +299,20 @@ public:
   }
 
   void set_up_page() { //resets tare value for when the user backs up a page
-    tare_value = "";
+    tare_value = F("");
     status = 0;
     update_taring_ui();
   }
 
   void save_tare_value() { //This method tells the slave to save the tare value to the EEPROM or for analog, tare
     if(tare_name == F("Torque")){
-      transmit("q", tare_value);
+      transmit(F("q"), tare_value);
     }
     else if(tare_name == F("Thrust")){
-      transmit("r", tare_value);
+      transmit(F("r"), tare_value);
     }
     else if(tare_name == F("Analog")){
-      transmit("a", "");
+      transmit(F("a"), F(""));
     }
     status = 2;
     update_taring_ui();
@@ -351,7 +351,7 @@ private:
       lcd.setCursor(0, 2);
       lcd.print("NEXT: " +  String(ENTER_INPUT) + " | BACK: " + String(BACK_BUTTON));
       lcd.setCursor(0, 3);
-      lcd.print("THROTTLE:OFF");
+      lcd.print(F("THROTTLE:OFF"));
       lcd.setCursor(0, 1);
     }
     else{
@@ -418,7 +418,7 @@ public:
       Serial.println("Interupt Status:" + String(INTERRUPTED));
 
       Serial.println("File Name: " + file_name);
-      transmit("f", file_name);
+      transmit(F("f"), file_name);
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print(F("SETTING UP FILE..."));
