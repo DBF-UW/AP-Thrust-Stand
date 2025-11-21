@@ -529,10 +529,17 @@ void no_record_ramp_up(){
   RECORD_THROTTLE_UP = false;
 }
 
+void initialize_load_cells(){
+  transmit();
+}
+
+void not_initialize_load_cells(){}; //DO NOTHING
+
 //DEFINE PAGES
 ChoicePage use_prev_tare = ChoicePage("USE PREV TARE?", skip_taring, tare);
 ChoicePage read_ramp_up = ChoicePage("READ RAMP UP DATA?", record_ramp_up, no_record_ramp_up);
 ChoicePage piecewise = ChoicePage("PIECEWISE?", run_piecewise, not_piecewise);
+ChoicePage initLoadCells = ChoicePage("INIT LOAD CELLS?", initialize_load_cells, not_initialize_load_cells);
 ChoicePage* choice_pages[3] = {&read_ramp_up, &piecewise, &use_prev_tare};
 
 TaringPage tare_torque = TaringPage("Torque");

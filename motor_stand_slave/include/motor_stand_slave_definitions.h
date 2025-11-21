@@ -96,7 +96,7 @@ bool paused;
 bool toggle_banner;
 bool set_zero_point;
 bool master_ready;
-
+bool init_load_cells;
 bool skip_torque;
 bool skip_thrust;
 bool skip_analog;

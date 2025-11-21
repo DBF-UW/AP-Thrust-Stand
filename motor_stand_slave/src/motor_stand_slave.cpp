@@ -50,11 +50,14 @@ void receiveEvent(int bytes){
   else if(type == 'w'){ // PAUSE data collection
     paused = true;
   }
-  else if(type == 'g'){
+  else if(type == 'g'){ // RESUME data collection
     paused = false;
   }
-  else if(type == 'n'){
+  else if(type == 'n'){// Toggle the banner release (FOR HOTWIRING)
     toggle_banner = true;
+  }
+  else if(type == 'i'){ //INIT load cells
+    init_load_cells = true;
   }
 }
 
@@ -122,13 +125,12 @@ void calibrate_hx711(HX711_ADC& load_cell, float known, int address){
 }
 
 // Initializes Load Cell
-void init_LoadCell () {
+void init_LoadCell (bool _tare) {
   Serial.println(F("Initializing the HX711 . . ."));
 
   TorqueSensor.begin();
   ThrustSensor.begin();
   
-  boolean _tare = true; //set this to false if you don't want tare to be performed in the next step
   TorqueSensor.start(2000, _tare); //tare for 2 seconds
   ThrustSensor.start(2000, _tare);
 
@@ -205,6 +207,7 @@ void setup(){
   zero_thrust = false;
   paused = false;
   toggle_banner = false;
+  init_load_cells = false;
   banner_status = 0;
   RPM = 0;
   ready = false;
@@ -226,7 +229,7 @@ void setup(){
   Serial.print(F("Free RAM (in bytes): "));
   Serial.println(free_memory());
 
-  init_LoadCell(); //initialze the load cell
+  init_LoadCell(false); //initialze the load cell
 
   //Initialize SD card; If no file is attached or something else goes wrong, 
   //the code put itself in an infinite loop
@@ -244,6 +247,15 @@ void loop(){
     digitalWrite(STATUS_LED_PIN, HIGH);
   } else {
     digitalWrite(STATUS_LED_PIN, LOW);
+  }
+
+  if(init_load_cells){ //initialize the load cells WITH ZEROING
+    ready = false;
+    digitalWrite(STATUS_LED_PIN, LOW);
+    init_LoadCell(true);
+    init_load_cells = false;
+    ready = true;
+    digitalWrite(STATUS_LED_PIN, HIGH);
   }
 
   if(use_prev_calibration){
