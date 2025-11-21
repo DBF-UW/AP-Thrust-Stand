@@ -272,8 +272,8 @@ public:
   void delete_digit() { //This method deletes a digit from the current known tare
     if(tare_name != F("Analog") && tare_value.length() > 0){
       tare_value.remove(tare_value.length() - 1);
-      lcd.setCursor(0, 1);
-      lcd.print(tare_value);
+      lcd.setCursor(tare_value.length(), 1);
+      lcd.print(F(" "));
     }
   }
 
@@ -364,7 +364,7 @@ private:
 public:
   ParameterPage(String parameter_name) : 
     parameter_name(parameter_name), 
-    parameter_value("")
+    parameter_value(F(""))
   {}
 
   void update_parameter_value(char inputted_digit) {
@@ -378,8 +378,8 @@ public:
   void delete_digit() {
     if(parameter_value.length() > 0){
       parameter_value.remove(parameter_value.length() - 1);
-      lcd.setCursor(0, 1);
-      lcd.print(parameter_value);
+      lcd.setCursor(parameter_value.length(), 1);
+      lcd.print(F(" "));
     }
   }
 
