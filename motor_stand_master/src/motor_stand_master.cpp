@@ -351,7 +351,7 @@ private:
     else{
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print("PRESS" + String(SEND_INPUT) + "TO START");
+      lcd.print("PRESS " + String(SEND_INPUT) + " TO START");
     }
   }
 
