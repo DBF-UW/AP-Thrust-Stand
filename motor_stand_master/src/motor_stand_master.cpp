@@ -422,6 +422,7 @@ public:
   }
 }; 
 
+//STATIC VARIABLE INITIALIZATIONS
 String ParameterPage::file_name = "";
 int ParameterPage::max_throttle = 0;
 int ParameterPage::increment = 0;
