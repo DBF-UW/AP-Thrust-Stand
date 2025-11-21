@@ -548,7 +548,6 @@ void setup() {
   pinMode(INTERRUPT_PIN, INPUT_PULLUP); //set default switch position to HIGH
   pinMode(STATUS_LED_PIN, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), interrupt, FALLING); //when switch is pressed down
-  INTERRUPTED = false;
 
   // Set up the LCD display
   lcd.init();
@@ -559,7 +558,6 @@ void setup() {
   Serial.println(F("Setting up"));
   Serial.print(F("Free RAM (in bytes): "));
   Serial.println(free_memory());
-  Serial.println("Interupt Status:" + String(INTERRUPTED));
   lcd.print(F("Loading ."));
 
   //Initialize I2C protocol (master)
@@ -589,8 +587,11 @@ void setup() {
   lcd.setCursor(0, 0);
   lcd.print(F("Loading ....."));
 
+  delay(100);
   Serial.println(F("READY"));
 
+  INTERRUPTED = false;
+  Serial.println("Interupt Status:" + String(INTERRUPTED));
   page_index = 0;
   page_type = 0;
   choice_pages[page_type] -> set_up_page();
