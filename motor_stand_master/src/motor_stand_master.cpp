@@ -15,6 +15,12 @@ void transmit(String type, String value){
   Wire.endTransmission();
 }
 
+extern int __heap_start, *__brkval;
+int free_memory() {
+  int v;
+  return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int)__brkval);
+}
+
 class Test{
 private:
   String file_name, RPM_markers;
@@ -35,7 +41,7 @@ private:
     lcd.setCursor(0, 1);
     lcd.print("TEST #: " + file_name);
     lcd.setCursor(0, 2);
-    lcd.print("INCR. LENGTH: " + String(increment_length) + " s");
+    lcd.print("INCR. LENGTH: " + String(increment_length / 1000) + " s");
     lcd.setCursor(0, 3);
     lcd.print("THROTTLE:" + String(map(current_throttle_pwm, ESC_MIN, ESC_MAX, 0, 100)));
     Serial.println("Starting: Test Num: " + file_name + " | Increment: " + String(increment_pwm));
@@ -67,7 +73,9 @@ public:
     done_throttling(false), 
     test_running(false), 
     paused(false)
-  {}
+  {
+    current_throttle_pwm = ESC_MIN;
+  }
 
   Test() 
   : file_name(""),
@@ -82,7 +90,9 @@ public:
     done_throttling(false), 
     test_running(false), 
     paused(false)
-  {}
+  {
+    current_throttle_pwm = ESC_MIN;
+  }
 
   void throttle_down(){
     esc.writeMicroseconds(1000);
@@ -91,11 +101,13 @@ public:
   void start_testing(){
     test_running = true;
     transmit("b", "");
+    testing_screen();
     prev_ramp_up_finish_timestamp = millis();
   }
 
   void end_testing(){
     transmit("e", "");
+    test_running = false;
     setup();
   }
 
@@ -127,12 +139,17 @@ public:
 
   void resume(){
     if(piecewise){
-      transmit("w", "");
+      transmit("g", "");
       int next_cycle_length = min(current_throttle_pwm + increment_pwm, max_throttle_pwm);
+      current_throttle_pwm = ESC_MIN;
       testing_screen();
       paused = false;
       throttle_up(next_cycle_length);
     }
+  }
+
+  int get_throttle_pwm(){
+    return current_throttle_pwm;
   }
 
   void throttle_up(int next_throttle){
@@ -154,7 +171,7 @@ public:
     int starting_throttle = current_throttle_pwm;
     for(current_throttle_pwm = starting_throttle; current_throttle_pwm <= next_cycle_length; current_throttle_pwm++){
       if(INTERRUPTED){
-        return; //return to the main loop and throttle down
+        return;
       }
       esc.writeMicroseconds(current_throttle_pwm);
       int percent = map(current_throttle_pwm, ESC_MIN, ESC_MAX, 0, 100);
@@ -169,9 +186,6 @@ public:
       delay(THROTTLE_UP_DELAY);
     }
     current_throttle_pwm--;
-    if(current_throttle_pwm == max_throttle_pwm){ //if we reached the end of throttling
-      end_testing();
-    }
 
     //resume data reading if necessary
     if(!read_ramp_up_data){
@@ -183,7 +197,11 @@ public:
   }
 
   bool increment_done(){ //check if good to throttle up again (increment is complete)
-    return millis() >= prev_ramp_up_finish_timestamp + increment_length;
+    return (millis() - prev_ramp_up_finish_timestamp) >= increment_length;
+  }
+
+  bool test_done(){
+    return increment_done() && (current_throttle_pwm == max_throttle_pwm);
   }
 
   String page_type(){
@@ -205,10 +223,10 @@ private:
       lcd.setCursor(0, 2);
       lcd.print("NEXT: " +  String(ENTER_INPUT) + "| SKIP: " + String(SKIP_TARE) + "    ");
       lcd.setCursor(0, 3);
-      if(tare_name == "Torque"){
+      if(tare_name == F("Torque")){
         lcd.print("UNITS: N.mm");
       }
-      else if(tare_name == "Thrust"){
+      else if(tare_name == F("Thrust")){
         lcd.print("Units: mN");
       }
     } 
@@ -216,7 +234,7 @@ private:
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("PRESS " + String(SEND_INPUT) + " TO TARE");
-      if(tare_name == "Analog"){
+      if(tare_name == F("Analog")){
         lcd.setCursor(0, 1);
         lcd.print("ANALOG SENSORS");
       }
@@ -237,19 +255,19 @@ public:
     tare_value("") 
   {}
 
-  void update_tare_value(int inputted_digit){ //This method adds a digit to the current known tare
-    if(tare_name != "Analog" && tare_value.length() < 9){
+  void update_tare_value(char inputted_digit){ //This method adds a digit to the current known tare
+    if(tare_name != F("Analog") && tare_value.length() < 9){
       tare_value += inputted_digit;
-      lcd.setCursor(0, 0);
-      lcd.print(tare_name + ": " + tare_value);
+      lcd.setCursor(0, 1);
+      lcd.print(tare_value);
     }
   }
 
   void delete_digit() { //This method deletes a digit from the current known tare
-    if(tare_name != "Analog" && tare_value.length() > 0){
+    if(tare_name != F("Analog") && tare_value.length() > 0){
       tare_value.remove(tare_value.length() - 1);
-      lcd.setCursor(0, 0);
-      lcd.print(tare_name + ": " + tare_value);
+      lcd.setCursor(0, 1);
+      lcd.print(tare_value);
     }
   }
 
@@ -258,13 +276,13 @@ public:
   }
 
   void skip_tare(){
-    if(tare_name == "Torque"){
+    if(tare_name == F("Torque")){
       transmit("o", "");
     }
-    else if(tare_name == "Thrust"){
+    else if(tare_name == F("Thrust")){
       transmit("u", "");
     }
-    else if(tare_name == "Analog"){
+    else if(tare_name == F("Analog")){
       transmit("l", "");
     }
   }
@@ -281,13 +299,13 @@ public:
   }
 
   void save_tare_value() { //This method tells the slave to save the tare value to the EEPROM or for analog, tare
-    if(tare_name == "Torque"){
-      transmit("r", tare_value);
-    }
-    else if(tare_name == "Thrust"){
+    if(tare_name == F("Torque")){
       transmit("q", tare_value);
     }
-    else if(tare_name == "Analog"){
+    else if(tare_name == F("Thrust")){
+      transmit("r", tare_value);
+    }
+    else if(tare_name == F("Analog")){
       transmit("a", "");
     }
     status = 2;
@@ -306,7 +324,7 @@ public:
   }
 
   String page_type() {
-    return "TaringPage";
+    return F("TaringPage");
   }
 };
 
@@ -320,7 +338,7 @@ private:
   static long increment_length;
   
   void update_parameter_ui() {
-    if(parameter_name != "Finalize"){
+    if(parameter_name != F("Finalize")){
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print(parameter_name + ": " + parameter_value);
@@ -343,19 +361,19 @@ public:
     parameter_value("")
   {}
 
-  void update_parameter_value(int inputted_digit) {
+  void update_parameter_value(char inputted_digit) {
     if(parameter_value.length() < 3){
       parameter_value += inputted_digit;
-      lcd.setCursor(0, 0);
-      lcd.print(parameter_name + ": " + parameter_value);
+      lcd.setCursor(0, 1);
+      lcd.print(parameter_value);
     }
   }
 
   void delete_digit() {
     if(parameter_value.length() > 0){
       parameter_value.remove(parameter_value.length() - 1);
-      lcd.setCursor(0, 0);
-      lcd.print(parameter_name + ": " + parameter_value);
+      lcd.setCursor(0, 1);
+      lcd.print(parameter_value);
     }
   }
 
@@ -364,19 +382,22 @@ public:
   }
 
   void save_parameter_value() {
-    if(parameter_name == "File Name"){
+    if(parameter_name == F("File Name")){
       file_name = parameter_value;
+      Serial.println("Recieved:" + file_name + " | Value: " + parameter_value);
     }
-    else if(parameter_name == "Max Throttle"){
+    else if(parameter_name == F("Max Throttle")){
       max_throttle = parameter_value.toInt();
+      Serial.println("Recieved:" + String(max_throttle) + " | Value: " + parameter_value);
     }
-    else if(parameter_name == "Increment"){
+    else if(parameter_name == F("Increment")){
       increment = parameter_value.toInt();
+      Serial.println("Recieved:" + String(increment) + " | Value: " + parameter_value);
     }
-    else if(parameter_name == "RPM Markers"){
+    else if(parameter_name == F("RPM Markers")){
       RPM_markers = parameter_value;
     }
-    else if(parameter_name == "Increment Length"){
+    else if(parameter_name == F("Increment Length")){
       increment_length = parameter_value.toInt();
     }
   }
@@ -387,11 +408,14 @@ public:
   }
 
   Test send_parameters() {
-    if(parameter_name == "Finalize"){
+    if(parameter_name == F("Finalize")){
+      Serial.println("Interupt Status:" + String(INTERRUPTED));
+
+      Serial.println("File Name: " + file_name);
       transmit("f", file_name);
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print("SETTING UP FILE...");
+      lcd.print(F("SETTING UP FILE..."));
       while(1){
         Wire.requestFrom(9, 1);
         if(Wire.read() == 1){
@@ -403,14 +427,15 @@ public:
       max_throttle = min(max(max_throttle, 0), 100); //constraining it between 0 and 100
       int max_throttle_pwm = map(max_throttle, 0, 100, ESC_MIN, ESC_MAX);
 
+      Serial.println(F("Transmitting increment"));
       increment = min(increment, max_throttle);
       int increment_pwm = map(increment, 0, 100, 0, ESC_MAX - ESC_MIN); //1% -> 99% written in terms of PWM cycle length, assuming a linear mapping
-      
-      Serial.println("Transmitting RPM markers...");
+
+      Serial.println(F("Transmitting RPM markers..."));
       transmit("m", RPM_markers);
 
       increment_length = (long) increment_length * 1000;
-      Serial.println("TEST PARAMETERS CONFIRMED!");
+      Serial.println(F("TEST PARAMETERS CONFIRMED!"));
 
       return Test(file_name, max_throttle_pwm, increment_pwm, increment_length, IS_PIECEWISE, RECORD_THROTTLE_UP);
     }
@@ -418,7 +443,7 @@ public:
   }
 
   String page_type() {
-    return "ParameterPage";
+    return F("ParameterPage");
   }
 }; 
 
@@ -440,7 +465,7 @@ private:
     lcd.setCursor(0, 0);
     lcd.print(prompt);
     lcd.setCursor(0, 3);
-    lcd.print("YES: A | NO: B");
+    lcd.print(F("YES: A | NO: B"));
   }
 
 public:
@@ -463,7 +488,7 @@ public:
   }
 
   String page_type() {
-    return "ChoicePage";
+    return F("ChoicePage");
   }
 }; 
 
@@ -519,9 +544,11 @@ ParameterPage* parameter_pages[6] = {&file_name, &max_throttle, &increment, &mar
 
 Test test;
 void setup() {
+  test = Test();
   pinMode(INTERRUPT_PIN, INPUT_PULLUP); //set default switch position to HIGH
   pinMode(STATUS_LED_PIN, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), interrupt, FALLING); //when switch is pressed down
+  INTERRUPTED = false;
 
   // Set up the LCD display
   lcd.init();
@@ -529,24 +556,27 @@ void setup() {
 
   //Initialize Serial 
   Serial.begin(9600);
-  Serial.println("Setting up");
-  lcd.print("Loading .");
+  Serial.println(F("Setting up"));
+  Serial.print(F("Free RAM (in bytes): "));
+  Serial.println(free_memory());
+  Serial.println("Interupt Status:" + String(INTERRUPTED));
+  lcd.print(F("Loading ."));
 
   //Initialize I2C protocol (master)
   Wire.begin();
   lcd.setCursor(0, 0);
-  lcd.print("Loading ..");
+  lcd.print(F("Loading .."));
   
   //Initialize servo PWM and arm the ESC
   esc.attach(ESC_PIN); //set esc to pin
   esc.writeMicroseconds(MIN_THROTTLE); //minimum throttle; arm the esc
 
   lcd.setCursor(0, 0);
-  lcd.print("Loading ...");
+  lcd.print(F("Loading ..."));
 
   //wait for SD card to initialize
   lcd.setCursor(0, 1);
-  lcd.print("INIT SD CARD");
+  lcd.print(F("INIT SD CARD"));
   while(1){
     Wire.requestFrom(9, 1);
     delay(100);
@@ -557,9 +587,9 @@ void setup() {
   }
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Loading .....");
+  lcd.print(F("Loading ....."));
 
-  Serial.println("READY");
+  Serial.println(F("READY"));
 
   page_index = 0;
   page_type = 0;
@@ -662,6 +692,7 @@ void loop() {
     else if(page_type == 2){ //PARAMETERS
       ParameterPage* curr_page = parameter_pages[page_index];
       if(key == ENTER_INPUT){
+        curr_page -> save_parameter_value();
         if(page_index < 5){
           page_index++;
           parameter_pages[page_index] -> set_up_page();
@@ -691,6 +722,8 @@ void loop() {
   //TEST LOGIC (MOTOR THROTTLE UP, TEST FLOW, ETC.)
   if(test.is_running()){
     if(INTERRUPTED){
+      Serial.println("INterrupted");
+      INTERRUPTED = false;
       test.end_testing();
     }
     if(test.is_piecewise()){ //PIECEWISE
@@ -701,6 +734,7 @@ void loop() {
       }
       else{ //PAUSE WHEN INCREMENT DONE
         if(test.increment_done()){
+          Serial.println("increment done");
           test.pause();
         }
       }
@@ -709,6 +743,11 @@ void loop() {
       if(test.increment_done()){
         test.throttle_up(-1);
       } 
+    }
+
+    if(test.test_done()){
+      Serial.println("DONE");
+      test.end_testing();
     }
   }
 }
