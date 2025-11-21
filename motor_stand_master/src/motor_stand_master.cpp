@@ -530,7 +530,7 @@ void no_record_ramp_up(){
 }
 
 void initialize_load_cells(){
-  transmit();
+  transmit(F("i"), F(""));
 }
 
 void not_initialize_load_cells(){}; //DO NOTHING
