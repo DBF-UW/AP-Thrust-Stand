@@ -74,6 +74,7 @@ void increment(){
 }
 
 float zero_analog(float (*func)(), int address){
+  digitalWrite(STATUS_LED_PIN, LOW);
   unsigned long start_time = millis();
   float average_raw = 0;
   float samples = 0;
@@ -89,10 +90,12 @@ float zero_analog(float (*func)(), int address){
   }
   average_raw = average_raw / samples;
   EEPROM.put(address, average_raw);
+  digitalWrite(STATUS_LED_PIN, HIGH);
   return average_raw;
 }
 
 void calibrate_hx711(HX711_ADC& load_cell, float known, int address){
+  digitalWrite(STATUS_LED_PIN, LOW);
   load_cell.setCalFactor(1);
   unsigned long start_time = millis();
   float average_raw = 0;
@@ -115,6 +118,7 @@ void calibrate_hx711(HX711_ADC& load_cell, float known, int address){
   float cal_factor = average_raw / known;
   load_cell.setCalFactor(cal_factor);
   EEPROM.put(address, cal_factor);
+  digitalWrite(STATUS_LED_PIN, HIGH);
 }
 
 // Initializes Load Cell
