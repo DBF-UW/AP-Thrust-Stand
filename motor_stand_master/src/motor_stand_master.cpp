@@ -189,6 +189,12 @@ public:
 
     //resume data reading if necessary
     if(!read_ramp_up_data){
+      long ramp_up_delay_start_timestamp = millis();
+      while((millis() - ramp_up_delay_start_timestamp) < 1500){ //wait 1.5 seconds before actually resuming
+        if(INTERRUPTED){
+          return;
+        }
+      }
       resume_data_reading();
     }
 
