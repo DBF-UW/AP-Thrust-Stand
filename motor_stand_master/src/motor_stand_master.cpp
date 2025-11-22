@@ -531,6 +531,16 @@ void no_record_ramp_up(){
 
 void initialize_load_cells(){
   transmit(F("i"), F(""));
+  lcd.setCursor(0, 1);
+  lcd.print("INITIALIZING...");
+  while(1){
+    Wire.requestFrom(9, 1);
+    delay(100);
+    if(Wire.read() == 1){
+      break;
+    }
+    delay(100);
+  }
 }
 
 void not_initialize_load_cells(){}; //DO NOTHING
@@ -539,13 +549,17 @@ void not_initialize_load_cells(){}; //DO NOTHING
 ChoicePage use_prev_tare = ChoicePage("USE PREV TARE?", skip_taring, tare);
 ChoicePage read_ramp_up = ChoicePage("READ RAMP UP DATA?", record_ramp_up, no_record_ramp_up);
 ChoicePage piecewise = ChoicePage("PIECEWISE?", run_piecewise, not_piecewise);
-ChoicePage initLoadCells = ChoicePage("INIT LOAD CELLS?", initialize_load_cells, not_initialize_load_cells);
+ChoicePage initLoadCells = ChoicePage("INIT LOAD CELLS?", initialize_load_cells, not_initialize_load_cells); //UNTESTED
 ChoicePage* choice_pages[3] = {&read_ramp_up, &piecewise, &use_prev_tare};
+int choicePagesSize = sizeof(choice_pages) / sizeof(choice_pages[0]);
+//EXPERIMENTAL STUFF (UNTESTED)
+//ChoicePage* choice_pages[3] = {&initLoadCells, &read_ramp_up, &piecewise, &use_prev_tare};
 
 TaringPage tare_torque = TaringPage("Torque");
 TaringPage tare_thrust = TaringPage("Thrust");
 TaringPage tare_analog = TaringPage("Analog");
 TaringPage* taring_pages[3] = {&tare_torque, &tare_thrust, &tare_analog};
+int taringPagesSize = sizeof(taring_pages) / sizeof(taring_pages[0]);
 
 ParameterPage file_name = ParameterPage("File Name");
 ParameterPage max_throttle = ParameterPage("Max Throttle");
@@ -554,6 +568,7 @@ ParameterPage markers = ParameterPage("RPM Markers");
 ParameterPage increment_length = ParameterPage("Increment Length");
 ParameterPage finalize = ParameterPage("Finalize");
 ParameterPage* parameter_pages[6] = {&file_name, &max_throttle, &increment, &markers, &increment_length, &finalize};
+int parameterPagesSize = sizeof(parameter_pages) / sizeof(parameter_pages[0]);
 
 Test test;
 void setup() {
@@ -617,15 +632,15 @@ void loop() {
   if(key && !test.is_running()){ 
     if(page_type == 0){ //CHOICE
       ChoicePage* curr_page = choice_pages[page_index];
-      if(key == 'A'){
+      if(key == 'A'){ //choice A
         curr_page -> runChoiceA();
         page_index++;
-        if(page_index == 3 && !skip_tare){
+        if(page_index == choicePagesSize && !skip_tare){
           page_index = 0;
           page_type = 1;
           taring_pages[page_index] -> set_up_page();
         }
-        else if(page_index == 3 && skip_tare){
+        else if(page_index == choicePagesSize && skip_tare){
           page_index = 0;
           page_type = 2;
           parameter_pages[page_index] -> set_up_page();
@@ -634,15 +649,15 @@ void loop() {
           choice_pages[page_index] -> set_up_page();
         }
       }
-      else if(key == 'B'){
+      else if(key == 'B'){ //choice B
         curr_page -> runChoiceB();
         page_index++;
-        if(page_index == 3 && !skip_tare){
+        if(page_index == choicePagesSize && !skip_tare){
           page_index = 0;
           page_type = 1;
           taring_pages[page_index] -> set_up_page();
         }
-        else if(page_index == 3 && skip_tare){
+        else if(page_index == choicePagesSize && skip_tare){
           page_index = 0;
           page_type = 2;
           parameter_pages[page_index] -> set_up_page();
@@ -660,46 +675,62 @@ void loop() {
     }
     else if(page_type == 1){ //TARING
       TaringPage* curr_page = taring_pages[page_index];
-      if(key == ENTER_INPUT && curr_page -> get_status() == 0){ //user clicks next
-        curr_page -> confirmation_page(); 
-      }
-      else if(key == DELETE && curr_page -> get_status() == 0){
-        curr_page -> delete_digit();
-      }
-      else if(key == BACK_BUTTON && curr_page -> get_status() == 1){
-        curr_page -> set_up_page();
-      }
-      else if(key >= '0' && key <= '9' && curr_page -> get_status() == 0){
-        curr_page -> update_tare_value(key);
-      }
-      else if(key == BACK_BUTTON && curr_page -> get_status() == 0){
-        if(page_index > 0){
-          page_index--;
-          parameter_pages[page_index] -> set_up_page();
+      if(curr_page -> get_status() == 0){ //status where user is entering in known values
+        if(key == ENTER_INPUT){ //user clicks next
+          curr_page -> confirmation_page(); 
+        }
+        else if(key == DELETE){
+          curr_page -> delete_digit();
+        }
+        else if(key >= '0' && key <= '9'){ //digit input
+          curr_page -> update_tare_value(key);
+        }
+        else if(key == BACK_BUTTON){
+          if(page_index > 0){
+            page_index--;
+            parameter_pages[page_index] -> set_up_page();
+          }
+        }
+        else if(key == SKIP_TARE){  //can skip tare from either the known value entering or waiting for confirmation page
+          curr_page -> skip_tare();
+          page_index++;
+          if(page_index == taringPagesSize){ //if done taring everything and sent, go to parameter pages
+            page_index = 0;
+            page_type = 2;
+            parameter_pages[page_index] -> set_up_page();
+          }
+          else{
+            taring_pages[page_index] -> set_up_page();
+          }
         }
       }
-      else if(key == SKIP_TARE && (curr_page -> get_status() == 0 || curr_page -> get_status() == 1)){ //TODO: Add better logic for skipping (if skip, get the individual value from the EEPROM and set it)
-        curr_page -> skip_tare();
-        page_index++;
-        if(page_index == 3){ //if done taring everything and sent, go to parameter pages
-          page_index = 0;
-          page_type = 2;
-          parameter_pages[page_index] -> set_up_page();
+      else if(curr_page -> get_status() == 1){ //status where the UI waits for the user to prompt it to start calibrating ("Press * to calibrate")
+        if(key == BACK_BUTTON){ //go back to known value input
+          curr_page -> set_up_page();
         }
-        else{
-          taring_pages[page_index] -> set_up_page();
+        else if(key == SKIP_TARE){ 
+          curr_page -> skip_tare();
+          page_index++;
+          if(page_index == taringPagesSize){ //if done taring everything and sent, go to parameter pages
+            page_index = 0;
+            page_type = 2;
+            parameter_pages[page_index] -> set_up_page();
+          }
+          else{
+            taring_pages[page_index] -> set_up_page();
+          }
         }
-      }
-      else if(key == SEND_INPUT && curr_page -> get_status() == 1){
-        curr_page -> save_tare_value();
-        page_index++;
-        if(page_index == 3){ //if done taring everything and sent, go to parameter pages
-          page_index = 0;
-          page_type = 2;
-          parameter_pages[page_index] -> set_up_page();
-        }
-        else{
-          taring_pages[page_index] -> set_up_page();
+        else if(key == SEND_INPUT){ //send the known tare values if in the confirmation page
+          curr_page -> save_tare_value();
+          page_index++;
+          if(page_index == taringPagesSize){ //if done taring everything and sent, go to parameter pages
+            page_index = 0;
+            page_type = 2;
+            parameter_pages[page_index] -> set_up_page();
+          }
+          else{
+            taring_pages[page_index] -> set_up_page();
+          }
         }
       }
     }
@@ -707,13 +738,13 @@ void loop() {
       ParameterPage* curr_page = parameter_pages[page_index];
       if(key == ENTER_INPUT){
         curr_page -> save_parameter_value();
-        if(page_index < 5){
+        if(page_index < parameterPagesSize - 1){ //If not on the finalizing page, set up the next page
           page_index++;
           parameter_pages[page_index] -> set_up_page();
         }
       }
       else if(key == SEND_INPUT){
-        if(page_index == 5){
+        if(page_index == parameterPagesSize - 1){ //If on the finalizing page, start testing
           test = curr_page -> send_parameters();
           test.start_testing();
         }
