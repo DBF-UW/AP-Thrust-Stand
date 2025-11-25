@@ -444,7 +444,9 @@ public:
       increment_length = (long) increment_length * 1000;
       Serial.println(F("TEST PARAMETERS CONFIRMED!"));
 
+      INTERRUPTED = false;
       return Test(file_name, max_throttle_pwm, increment_pwm, increment_length, IS_PIECEWISE, RECORD_THROTTLE_UP);
+      
     }
     return Test();
   }
@@ -617,7 +619,7 @@ void setup() {
   lcd.setCursor(0, 0);
   lcd.print(F("Loading ....."));
 
-  delay(100);
+  delay(1000);
   Serial.println(F("READY"));
 
   INTERRUPTED = false;
