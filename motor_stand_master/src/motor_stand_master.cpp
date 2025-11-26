@@ -369,7 +369,7 @@ public:
   {}
 
   void update_parameter_value(char inputted_digit) {
-    if(parameter_value.length() < 3){
+    if(parameter_value.length() < 3 && parameter_name != F("Finalize")){
       parameter_value += inputted_digit;
       lcd.setCursor(0, 1);
       lcd.print(parameter_value);
@@ -377,7 +377,7 @@ public:
   }
 
   void delete_digit() {
-    if(parameter_value.length() > 0){
+    if(parameter_value.length() > 0 && parameter_name != F("Finalize")){
       parameter_value.remove(parameter_value.length() - 1);
       lcd.setCursor(parameter_value.length(), 1);
       lcd.print(F(" "));
@@ -393,18 +393,18 @@ public:
       file_name = parameter_value;
       Serial.println("Recieved:" + file_name + " | Value: " + parameter_value);
     }
-    else if(parameter_name == F("Max Throttle")){
+    else if(parameter_name == F("Max Throttle (%)")){
       max_throttle = parameter_value.toInt();
       Serial.println("Recieved:" + String(max_throttle) + " | Value: " + parameter_value);
     }
-    else if(parameter_name == F("Increment")){
+    else if(parameter_name == F("Increment (%)")){
       increment = parameter_value.toInt();
       Serial.println("Recieved:" + String(increment) + " | Value: " + parameter_value);
     }
     else if(parameter_name == F("RPM Markers")){
       RPM_markers = parameter_value;
     }
-    else if(parameter_name == F("Increment Length")){
+    else if(parameter_name == F("Increment Length (s)")){
       increment_length = parameter_value.toInt();
     }
   }
@@ -566,10 +566,10 @@ TaringPage* taring_pages[3] = {&tare_torque, &tare_thrust, &tare_analog};
 int taringPagesSize = sizeof(taring_pages) / sizeof(taring_pages[0]);
 
 ParameterPage file_name = ParameterPage("File Name");
-ParameterPage max_throttle = ParameterPage("Max Throttle");
-ParameterPage increment = ParameterPage("Increment");
+ParameterPage max_throttle = ParameterPage("Max Throttle (%)");
+ParameterPage increment = ParameterPage("Increment (%)");
 ParameterPage markers = ParameterPage("RPM Markers");
-ParameterPage increment_length = ParameterPage("Increment Length");
+ParameterPage increment_length = ParameterPage("Increment Length (s)");
 ParameterPage finalize = ParameterPage("Finalize");
 ParameterPage* parameter_pages[6] = {&file_name, &max_throttle, &increment, &markers, &increment_length, &finalize};
 int parameterPagesSize = sizeof(parameter_pages) / sizeof(parameter_pages[0]);
