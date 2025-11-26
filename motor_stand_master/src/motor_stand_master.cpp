@@ -553,11 +553,8 @@ ChoicePage use_prev_tare = ChoicePage("USE PREV TARE?", skip_taring, tare);
 ChoicePage read_ramp_up = ChoicePage("READ RAMP UP DATA?", record_ramp_up, no_record_ramp_up);
 ChoicePage piecewise = ChoicePage("PIECEWISE?", run_piecewise, not_piecewise);
 ChoicePage initLoadCells = ChoicePage("INIT LOAD CELLS?", initialize_load_cells, not_initialize_load_cells); //UNTESTED
-//ChoicePage* choice_pages[3] = {&read_ramp_up, &piecewise, &use_prev_tare};
-//EXPERIMENTAL STUFF (UNTESTED)
 ChoicePage* choice_pages[4] = {&initLoadCells, &read_ramp_up, &piecewise, &use_prev_tare};
 int choicePagesSize = sizeof(choice_pages) / sizeof(choice_pages[0]);
-
 
 TaringPage tare_torque = TaringPage("Torque");
 TaringPage tare_thrust = TaringPage("Thrust");
