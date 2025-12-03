@@ -230,10 +230,10 @@ private:
       lcd.setCursor(0, 2);
       lcd.print("NEXT: " +  String(ENTER_INPUT) + "| SKIP: " + String(SKIP_TARE) + "    ");
       lcd.setCursor(0, 3);
-      if(tare_name == F("Torque")){
+      if(tare_name == F("Torque (N.mm)")){
         lcd.print(F("UNITS: N.mm"));
       }
-      else if(tare_name == F("Thrust")){
+      else if(tare_name == F("Thrust (mN)")){
         lcd.print(F("Units: mN"));
       }
     } 
@@ -283,10 +283,10 @@ public:
   }
 
   void skip_tare(){
-    if(tare_name == F("Torque")){
+    if(tare_name == F("Torque (N.mm)")){
       transmit(F("o"), F(""));
     }
-    else if(tare_name == F("Thrust")){
+    else if(tare_name == F("Thrust (mN)")){
       transmit(F("u"), F(""));
     }
     else if(tare_name == F("Analog")){
@@ -306,10 +306,10 @@ public:
   }
 
   void save_tare_value() { //This method tells the slave to save the tare value to the EEPROM or for analog, tare
-    if(tare_name == F("Torque")){
+    if(tare_name == F("Torque (N.mm)")){
       transmit(F("q"), tare_value);
     }
-    else if(tare_name == F("Thrust")){
+    else if(tare_name == F("Thrust (mN)")){
       transmit(F("r"), tare_value);
     }
     else if(tare_name == F("Analog")){
@@ -556,8 +556,8 @@ ChoicePage initLoadCells = ChoicePage("INIT LOAD CELLS?", initialize_load_cells,
 ChoicePage* choice_pages[4] = {&initLoadCells, &read_ramp_up, &piecewise, &use_prev_tare};
 int choicePagesSize = sizeof(choice_pages) / sizeof(choice_pages[0]);
 
-TaringPage tare_torque = TaringPage("Torque");
-TaringPage tare_thrust = TaringPage("Thrust");
+TaringPage tare_torque = TaringPage("Torque (N.mm)");
+TaringPage tare_thrust = TaringPage("Thrust (mN)");
 TaringPage tare_analog = TaringPage("Analog");
 TaringPage* taring_pages[3] = {&tare_torque, &tare_thrust, &tare_analog};
 int taringPagesSize = sizeof(taring_pages) / sizeof(taring_pages[0]);
