@@ -63,6 +63,7 @@ const int THROTTLE_UP_DELAY = 10;
 
 bool IS_PIECEWISE;
 bool RECORD_THROTTLE_UP;
+bool PYRAMID_THROTTLE_PROFILE;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //MANUAL OVERRIDE DEFINITIONS

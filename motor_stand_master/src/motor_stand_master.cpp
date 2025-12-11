@@ -202,6 +202,48 @@ public:
     prev_ramp_up_finish_timestamp = millis(); //update the timestamp of when the last ramp up sequence finished
   }
 
+  void pyramidal_throttle_profile(){
+    //ramp up to max in increment_length time 
+    for(current_throttle_pwm = ESC_MIN; current_throttle_pwm <= ESC_MAX; current_throttle_pwm++){
+      if(INTERRUPTED){
+        return;
+      }
+      esc.writeMicroseconds(current_throttle_pwm);
+      int percent = map(current_throttle_pwm, ESC_MIN, ESC_MAX, 0, 100);
+      if(percent < 10){
+        lcd.setCursor(9, 3);
+        lcd.print(String(percent) + " ");
+      }
+      else{
+        lcd.setCursor(9, 3);
+        lcd.print(String(percent));
+      }
+      delay(increment_length / (ESC_MAX - ESC_MIN)); //calculate exactly how long each increment should last to be exactly increment_length long
+    }
+
+    //ramp back down from max in increment_length time
+    for(current_throttle_pwm = ESC_MAX; current_throttle_pwm >= ESC_MIN; current_throttle_pwm--){
+      if(INTERRUPTED){
+        return;
+      }
+      esc.writeMicroseconds(current_throttle_pwm);
+      int percent = map(current_throttle_pwm, ESC_MIN, ESC_MAX, 0, 100);
+      if(percent < 10){
+        lcd.setCursor(9, 3);
+        lcd.print(String(percent) + "  ");
+      }
+      else if(percent < 100){
+        lcd.setCursor(9, 3);
+        lcd.print(String(percent) + " ");
+      }
+      else{
+        lcd.setCursor(9, 3);
+        lcd.print(String(percent));
+      }
+      delay(increment_length / (ESC_MAX - ESC_MIN)); //calculate exactly how long each increment should last to be exactly increment_length long
+    }
+  }
+
   bool increment_done(){ //check if good to throttle up again (increment is complete)
     return (millis() - prev_ramp_up_finish_timestamp) >= increment_length;
   }
@@ -445,8 +487,8 @@ public:
       Serial.println(F("TEST PARAMETERS CONFIRMED!"));
 
       INTERRUPTED = false;
+
       return Test(file_name, max_throttle_pwm, increment_pwm, increment_length, IS_PIECEWISE, RECORD_THROTTLE_UP);
-      
     }
     return Test();
   }
@@ -532,6 +574,14 @@ void no_record_ramp_up(){
   RECORD_THROTTLE_UP = false;
 }
 
+void pyramidal_throttle_profile(){
+  PYRAMID_THROTTLE_PROFILE = true;
+}
+
+void no_pyramidal_throttle_profile(){
+  PYRAMID_THROTTLE_PROFILE = false;
+}
+
 void initialize_load_cells(){
   transmit(F("i"), F(""));
   lcd.setCursor(0, 1);
@@ -552,8 +602,9 @@ void not_initialize_load_cells(){}; //DO NOTHING
 ChoicePage use_prev_tare = ChoicePage("USE PREV TARE?", skip_taring, tare);
 ChoicePage read_ramp_up = ChoicePage("READ RAMP UP DATA?", record_ramp_up, no_record_ramp_up);
 ChoicePage piecewise = ChoicePage("PIECEWISE?", run_piecewise, not_piecewise);
-ChoicePage initLoadCells = ChoicePage("INIT LOAD CELLS?", initialize_load_cells, not_initialize_load_cells); //UNTESTED
-ChoicePage* choice_pages[4] = {&initLoadCells, &read_ramp_up, &piecewise, &use_prev_tare};
+ChoicePage initLoadCells = ChoicePage("INIT LOAD CELLS?", initialize_load_cells, not_initialize_load_cells);
+ChoicePage pyramidThrustProfile = ChoicePage("^ THRUST PROFILE?", pyramidal_throttle_profile, no_pyramidal_throttle_profile);
+ChoicePage* choice_pages[5] = {&initLoadCells, &pyramidThrustProfile, &read_ramp_up, &piecewise, &use_prev_tare};
 int choicePagesSize = sizeof(choice_pages) / sizeof(choice_pages[0]);
 
 TaringPage tare_torque = TaringPage("Torque (N.mm)");
@@ -772,23 +823,29 @@ void loop() {
       INTERRUPTED = false;
       test.end_testing();
     }
-    if(test.is_piecewise()){ //PIECEWISE
-      if(test.is_paused()){ //WHEN TEST IS PAUSED
-        if(key && key == SEND_INPUT){
-          test.resume();
-        }
-      }
-      else{ //PAUSE WHEN INCREMENT DONE
-        if(test.increment_done()){
-          Serial.println("increment done");
-          test.pause();
-        }
-      }
+    if(PYRAMID_THROTTLE_PROFILE){ //PYRAMIDAL THROTTLE MODE
+      test.pyramidal_throttle_profile();
+      test.end_testing();
     }
-    else{ //NOT PIECEWISE
-      if(test.increment_done()){
-        test.throttle_up(-1);
-      } 
+    else{
+      if(test.is_piecewise()){ //PIECEWISE
+        if(test.is_paused()){ //WHEN TEST IS PAUSED
+          if(key && key == SEND_INPUT){
+            test.resume();
+          }
+        }
+        else{ //PAUSE WHEN INCREMENT DONE
+          if(test.increment_done()){
+            Serial.println("increment done");
+            test.pause();
+          }
+        }
+      }
+      else{ //NOT PIECEWISE
+        if(test.increment_done()){
+          test.throttle_up(-1);
+        } 
+      }
     }
 
     if(test.test_done()){
