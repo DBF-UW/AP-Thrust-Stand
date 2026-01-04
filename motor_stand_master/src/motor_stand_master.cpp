@@ -521,13 +521,14 @@ public:
       int max_throttle_pwm = map(max_throttle, 0, 100, ESC_MIN, ESC_MAX);
 
       Serial.println(F("Transmitting increment"));
-      increment = min(increment, max_throttle);
+      increment = max(1, min(increment, max_throttle));
       int increment_pwm = map(increment, 0, 100, 0, ESC_MAX - ESC_MIN); //1% -> 99% written in terms of PWM cycle length, assuming a linear mapping
 
       Serial.println(F("Transmitting RPM markers..."));
+      RPM_markers = String(max(1, RPM_markers.toInt()));
       transmit("m", RPM_markers);
 
-      increment_length = (long) increment_length * 1000;
+      increment_length = max(1L, (long) increment_length) * 1000;
       Serial.println(F("TEST PARAMETERS CONFIRMED!"));
 
       INTERRUPTED = false;
