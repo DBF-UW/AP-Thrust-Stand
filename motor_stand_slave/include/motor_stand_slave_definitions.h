@@ -86,6 +86,7 @@ String signal;
 File data_file; 
 bool reading_on;
 bool stop;
+bool interrupted;
 bool creating_new_file;
 bool marker_sent;
 bool zero_torque;

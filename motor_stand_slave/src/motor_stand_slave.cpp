@@ -59,6 +59,10 @@ void receiveEvent(int bytes){
   else if(type == 'i'){ //INIT load cells
     init_load_cells = true;
   }
+  else if(type == 'c'){
+    interrupted = true;
+    reading_on = false;
+  }
 }
 
 void requestEvent(){
@@ -73,6 +77,23 @@ void increment(){
   if(see_object){
     objects++;
     see_object = false;
+  }
+}
+
+void safeCloseFile(){
+  if(data_file){
+    data_file.flush();
+    data_file.close();
+    Serial.println(F("File closed safely"));
+  }
+}
+
+void emergencyCloseFile(){
+  if(data_file){
+    data_file.println(F("# TEST INTERRUPTED"));
+    data_file.flush();
+    data_file.close();
+    Serial.println(F("Emergency file close"));
   }
 }
 
@@ -363,7 +384,6 @@ void loop(){
         objects = 0;
         prev_second = millis();
       }
-      //Serial.println("reading_on");
       if(TorqueSensor.update() && ThrustSensor.update()){
 
         //Serial.println("update from sensors");
@@ -435,7 +455,13 @@ void loop(){
       increment();
     }
     else if(stop){ //If the signal to stop testing is recieved from master, close the file
-      data_file.close();
+      Serial.println(F("Test stopped, closing file"));
+      safeCloseFile();
+      setup();
+    }
+    else if(interrupted){
+      Serial.println(F("Interrupted, closing file in emergency mode"));
+      emergencyCloseFile();
       setup();
     }
   }

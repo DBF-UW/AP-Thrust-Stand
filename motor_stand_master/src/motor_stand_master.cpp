@@ -15,6 +15,36 @@ void transmit(String type, String value){
   Wire.endTransmission();
 }
 
+bool waitForSlaveReady(unsigned long timeout_ms = 10000){
+  unsigned long start = millis();
+  while(millis() - start < timeout_ms){
+    Wire.requestFrom(9, 1);
+    if(Wire.available() && Wire.read() == 1){
+      return true;
+    }
+    delay(100);
+  }
+  return false; //TIMEOUT
+}
+
+bool handleSlaveTimeout(String operation = ""){
+  lcd.clear();
+  lcd.print("SLAVE TIMEOUT");
+  lcd.setCursor(0, 1);
+  lcd.print(operation);
+  lcd.setCursor(0, 3);
+  lcd.print("A:RETRY | D: ABORT");
+  while(1){
+    char key = keypad.getKey();
+    if(key == 'A'){
+      return true; //RETRY
+    }
+    else if(key == 'D'){
+      return false; //ABORT
+    }
+  }
+}
+
 extern int __heap_start, *__brkval;
 int free_memory() {
   int v;
@@ -107,6 +137,12 @@ public:
 
   void end_testing(){
     transmit("e", "");
+    test_running = false;
+    setup();
+  }
+
+  void emergency_end_testing(){
+    transmit("c", "");
     test_running = false;
     setup();
   }
@@ -359,12 +395,20 @@ public:
     }
     status = 2;
     update_taring_ui();
-    while(1){
-      Wire.requestFrom(9, 1);
-      if(Wire.read() == 1){
-        break;
-      }
-      delay(100);
+    // while(1){
+    //   Wire.requestFrom(9, 1);
+    //   if(Wire.read() == 1){
+    //     break;
+    //   }
+    //   delay(100);
+    // }
+    if(!waitForSlaveReady(10000)){
+      lcd.clear();
+      lcd.print(F("TARE TIMEOUT"));
+      lcd.setCursor(0, 2);
+      lcd.print(F("PRESS ANY KEY"));
+      while(!keypad.getKey());
+      //continue on anyways (User can retry later)
     }
   }
 
@@ -586,13 +630,18 @@ void initialize_load_cells(){
   transmit(F("i"), F(""));
   lcd.setCursor(0, 1);
   lcd.print("INITIALIZING...");
-  while(1){
-    Wire.requestFrom(9, 1);
-    delay(100);
-    if(Wire.read() == 1){
-      break;
+  // while(1){
+  //   Wire.requestFrom(9, 1);
+  //   delay(100);
+  //   if(Wire.read() == 1){
+  //     break;
+  //   }
+  //   delay(100);
+  // }
+  if(!waitForSlaveReady(15000)){
+    if(!handleSlaveTimeout("LOAD CELL INIT")){
+      return; //skip initialization
     }
-    delay(100);
   }
 }
 
@@ -655,14 +704,26 @@ void setup() {
   //wait for SD card to initialize
   lcd.setCursor(0, 1);
   lcd.print(F("INIT SD CARD"));
-  while(1){
-    Wire.requestFrom(9, 1);
-    delay(100);
-    if(Wire.read() == 1){
-      break;
-    }
-    delay(100);
+  // while(1){
+  //   Wire.requestFrom(9, 1);
+  //   delay(100);
+  //   if(Wire.read() == 1){
+  //     break;
+  //   }
+  //   delay(100);
+  // }
+  if(!waitForSlaveReady(15000)){
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(F("SD CARD FAILED!"));
+    lcd.setCursor(0, 1);
+    lcd.print(F("INSERT CARD &"));
+    lcd.setCursor(0, 2);
+    lcd.print(F("PRESS ANY KEY"));
+    while(!keypad.getKey());
+    setup(); //retry the setup
   }
+
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(F("Loading ....."));
@@ -821,7 +882,7 @@ void loop() {
     if(INTERRUPTED){
       Serial.println("Interrupted");
       INTERRUPTED = false;
-      test.end_testing();
+      test.emergency_end_testing();
     }
     if(PYRAMID_THROTTLE_PROFILE){ //PYRAMIDAL THROTTLE MODE
       test.pyramidal_throttle_profile();
